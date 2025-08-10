@@ -22,6 +22,7 @@ export function middleware(req: Request, res: Response, next: NextFunction) {
         }
 
         req.userId = decoded.userId;
+
         next();
     } catch (err) {
         console.error(err);
