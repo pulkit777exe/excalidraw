@@ -1,6 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { createErrorResponse } from "../utils/responses";
+import { configDotenv } from "dotenv";
+
+configDotenv();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_ISSUER = "http-backend";

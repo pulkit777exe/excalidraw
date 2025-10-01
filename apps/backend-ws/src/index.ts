@@ -1,6 +1,6 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import jwt from "jsonwebtoken";
-import { prismaClient } from "@repo/db/client";
+import { prismaClient } from "@repo/db";
 
 const wss = new WebSocketServer({ port: 8080 });
 
@@ -97,9 +97,5 @@ wss.on('connection', function connection(ws, request) {
         }
       })
     }
-  
-  
   });
-
-
 });

@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  output   = "./generated/prisma"
 }
 
 datasource db {
@@ -22,6 +22,8 @@ model Room {
   id          Int         @id @default(autoincrement())
   slug        String      @unique  
   createdAt   DateTime    @default(now())
+  updateAt    DateTime    @updatedAt
+  name        String
   adminId     String      
   admin       User        @relation(fields: [adminId], references: [id])
   chats       Chat[]

@@ -1,7 +1,7 @@
 {
   "name": "backend-ws",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "backend websocket server for escalidraw",
   "main": "index.js",
   "scripts": {
     "build": "tsc -b",

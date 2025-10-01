@@ -1,7 +1,10 @@
 import { Router, Response } from "express";
-import { prismaClient } from "@repo/db/client";
+import { prismaClient } from "@repo/db";
 import { createErrorResponse, createSuccessResponse } from "../utils/responses";
 import { AuthenticatedRequest, authMiddleware } from "../middleware/auth";
+import dotenv from "dotenv";
+
+dotenv.config()
 
 const chatRoutes: Router = Router();
 const CHAT_MESSAGES_LIMIT = 50;
@@ -42,7 +45,6 @@ chatRoutes.get(
 
       const messages = await prismaClient.chat.findMany({
         where: { roomId },
-        orderBy: { createdAt: "desc" },
         take: CHAT_MESSAGES_LIMIT,
         include: {
           user: {
@@ -102,7 +104,6 @@ chatRoutes.get(
           slug: true,
           name: true,
           createdAt: true,
-          updatedAt: true,
           _count: {
             select: {
               chats: true,

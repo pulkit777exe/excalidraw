@@ -1,9 +1,12 @@
 import { Router, Request, Response, RouterOptions } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { prismaClient } from "@repo/db/client";
+import { prismaClient } from "@repo/db";
 import { UserSchema, SignInSchema } from "@repo/common-config/config";
 import { createErrorResponse, createSuccessResponse } from "../utils/responses";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const authRoutes: Router = Router();
 
@@ -18,17 +21,15 @@ if (!JWT_SECRET) {
 }
 
 const generateToken = (userId: number, email: string): string => {
-  return jwt.sign(
-    { userId, email },
-    JWT_SECRET!,
-    {
-      expiresIn: JWT_EXPIRY,
-      issuer: JWT_ISSUER,
-    }
-  );
+  return jwt.sign({ userId, email }, JWT_SECRET!, {
+    expiresIn: JWT_EXPIRY,
+    issuer: JWT_ISSUER,
+  });
 };
 
-const isPasswordStrong = (password: string): { valid: boolean; message?: string } => {
+const isPasswordStrong = (
+  password: string
+): { valid: boolean; message?: string } => {
   if (password.length < 8) {
     return { valid: false, message: "Password must be at least 8 characters" };
   }
@@ -41,11 +42,14 @@ authRoutes.post(
     try {
       const parsed = UserSchema.safeParse(req.body);
       if (!parsed.success) {
-        res.status(400).json(
-          createErrorResponse(
-            "Invalid input: " + parsed.error.errors.map(e => e.message).join(", ")
-          )
-        );
+        res
+          .status(400)
+          .json(
+            createErrorResponse(
+              "Invalid input: " +
+                parsed.error.errors.map((e) => e.message).join(", ")
+            )
+          );
         return;
       }
 
@@ -53,9 +57,7 @@ authRoutes.post(
 
       const passwordCheck = isPasswordStrong(password);
       if (!passwordCheck.valid) {
-        res.status(400).json(
-          createErrorResponse(passwordCheck.message!)
-        );
+        res.status(400).json(createErrorResponse(passwordCheck.message!));
         return;
       }
 
@@ -67,9 +69,14 @@ authRoutes.post(
       });
 
       if (existingUser) {
-        res.status(409).json(
-          createErrorResponse("An account with this email already exists", 409)
-        );
+        res
+          .status(409)
+          .json(
+            createErrorResponse(
+              "An account with this email already exists",
+              409
+            )
+          );
         return;
       }
 
@@ -85,27 +92,33 @@ authRoutes.post(
           id: true,
           email: true,
           name: true,
-          createdAt: true,
         },
       });
 
-      const token = generateToken(newUser.id, newUser.email);
+      const token = generateToken(Number(newUser.id), newUser.email);
 
-      res.status(201).json(
-        createSuccessResponse(
-          { user: newUser, token },
-          "Account created successfully"
-        )
-      );
+      res
+        .status(201)
+        .json(
+          createSuccessResponse(
+            { user: newUser, token },
+            "Account created successfully"
+          )
+        );
     } catch (error) {
       console.error("Signup error:", {
         email: req.body?.email,
         error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
       });
-      res.status(500).json(
-        createErrorResponse("Failed to create account. Please try again.", 500)
-      );
+      res
+        .status(500)
+        .json(
+          createErrorResponse(
+            "Failed to create account. Please try again.",
+            500
+          )
+        );
     }
   }
 );
@@ -116,11 +129,14 @@ authRoutes.post(
     try {
       const parsed = SignInSchema.safeParse(req.body);
       if (!parsed.success) {
-        res.status(400).json(
-          createErrorResponse(
-            "Invalid input: " + parsed.error.errors.map(e => e.message).join(", ")
-          )
-        );
+        res
+          .status(400)
+          .json(
+            createErrorResponse(
+              "Invalid input: " +
+                parsed.error.errors.map((e) => e.message).join(", ")
+            )
+          );
         return;
       }
 
@@ -153,7 +169,7 @@ authRoutes.post(
         return;
       }
 
-      const token = generateToken(user.id, user.email);
+      const token = generateToken(Number(user.id), user.email);
 
       const { password: _, ...userWithoutPassword } = user;
 
@@ -173,9 +189,9 @@ authRoutes.post(
         error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
       });
-      res.status(500).json(
-        createErrorResponse("Failed to sign in. Please try again.", 500)
-      );
+      res
+        .status(500)
+        .json(createErrorResponse("Failed to sign in. Please try again.", 500));
     }
   }
 );

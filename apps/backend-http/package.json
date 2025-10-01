@@ -1,6 +1,6 @@
 {
   "name": "backend-http",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -12,7 +12,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/dotenv": "^8.2.3",
     "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2"
   },
