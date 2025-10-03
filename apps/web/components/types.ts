@@ -1,5 +1,7 @@
+import { LucideIcon } from "lucide-react";
+
 export interface TopBarComponent {
-    Icon: React.FC<React.SVGProps<SVGSVGElement>>;
-    name: string;
-    action: () => void;
+  Icon: LucideIcon;
+  name: string;
+  action: () => void;
 }
