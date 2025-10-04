@@ -1,41 +1,44 @@
-
-import { cva, type VariantProps } from "class-variance-authority";
+import * as React from "react";
 import { cn } from "./utils/cn";
 
-const badgeVariants = cva(
-  "max-w-fit rounded-full border px-2 py-px text-xs font-medium whitespace-nowrap",
-  {
-    variants: {
-      variant: {
-        default: "border-neutral-400 text-neutral-500",
-        violet: "border-violet-600 bg-violet-600 text-white",
-        blue: "border-blue-500 bg-blue-500 text-white",
-        green: "border-green-100 bg-green-100 text-green-900",
-        sky: "border-sky-900 bg-sky-900 text-white",
-        black: "border-black bg-black text-white",
-        gray: "border-neutral-200 bg-neutral-100 text-neutral-800",
-        neutral: "border-neutral-400 text-neutral-500",
-        amber: "border-amber-800 bg-amber-800 text-white",
-        blueGradient:
-          "bg-gradient-to-r from-blue-100 via-blue-100/50 to-blue-100 border border-blue-200 text-blue-900",
-        rainbow:
-          "bg-gradient-to-r from-violet-600 to-pink-600 text-white border-transparent",
-      },
-    },
-    defaultVariants: {
-      variant: "neutral",
-    },
-  },
-);
-
-interface BadgeProps
-  extends React.HTMLAttributes<HTMLSpanElement>,
-    VariantProps<typeof badgeVariants> {}
-
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <span className={cn(badgeVariants({ variant }), className)} {...props} />
-  );
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "success" | "warning" | "error" | "info";
+  size?: "sm" | "md" | "lg";
 }
 
-export { Badge, badgeVariants };
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
+  ({ className, variant = "default", size = "md", children, ...props }, ref) => {
+    const variants = {
+      default: "bg-gray-500/20 text-gray-200 border-gray-400/30",
+      success: "bg-green-500/20 text-green-200 border-green-400/30",
+      warning: "bg-yellow-500/20 text-yellow-200 border-yellow-400/30",
+      error: "bg-red-500/20 text-red-200 border-red-400/30",
+      info: "bg-blue-500/20 text-blue-200 border-blue-400/30",
+    };
+
+    const sizes = {
+      sm: "px-2 py-0.5 text-xs",
+      md: "px-3 py-1 text-sm",
+      lg: "px-4 py-1.5 text-base",
+    };
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full font-medium border backdrop-blur-sm",
+          variants[variant],
+          sizes[size],
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+);
+
+Badge.displayName = "Badge";
+
+export { Badge };

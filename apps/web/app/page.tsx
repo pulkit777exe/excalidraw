@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Input, Card, Modal } from "@repo/ui";
 import TopBar from "../components/TopBar";
+import { Mail, Lock, User, Plus, LogIn } from "lucide-react";
 
 function generateRoomId(): string {
   const adjectives = ["swift", "cosmic", "bright", "quiet", "bold", "cool", "warm", "vivid"];
@@ -69,7 +71,7 @@ export default function Home() {
       
       setShowAuthModal(false);
       setError("");
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || "Authentication failed");
     } finally {
       setIsAuthenticating(false);
@@ -138,7 +140,7 @@ export default function Home() {
         <div className="w-full max-w-2xl">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center inline-block mb-4 relative">
+            <div className="flex items-center justify-center mb-4 relative">
               <h1 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 mb-2 tracking-tight relative z-10">
                 Escalidraw
               </h1>
@@ -150,8 +152,7 @@ export default function Home() {
           </div>
 
           {/* Main Card */}
-          <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl p-6 md:p-8 border border-white/20 hover:border-white/30 transition-all duration-300">
-            
+          <Card variant="glass" className="p-6 md:p-8">
             {error && (
               <div className="mb-4 p-3 bg-red-500/20 border border-red-400/30 rounded-xl backdrop-blur-sm">
                 <p className="text-sm text-red-200 font-medium">{error}</p>
@@ -167,9 +168,7 @@ export default function Home() {
               >
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                    </svg>
+                    <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white mb-1">
@@ -186,9 +185,7 @@ export default function Home() {
               <div className="group bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-2 border-emerald-400/20 rounded-2xl p-5 hover:border-emerald-400/50 hover:from-emerald-500/20 hover:to-emerald-600/10 transition-all duration-300">
                 <div className="flex items-start gap-4 mb-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                    </svg>
+                    <LogIn className="w-6 h-6 text-white" strokeWidth={2.5} />
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-bold text-white mb-1">
@@ -207,12 +204,14 @@ export default function Home() {
                       placeholder="e.g., swift-tiger-123"
                       className="w-full px-3 py-2 mb-2 bg-white/5 border-2 border-white/10 rounded-lg focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400/50 outline-none transition-all text-white text-sm placeholder-gray-400 backdrop-blur-sm hover:bg-white/10"
                     />
-                    <button
+                    <Button
                       onClick={handleJoinRoom}
-                      className="w-full px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-emerald-500/50 text-sm"
+                      variant="success"
+                      size="sm"
+                      className="w-full"
                     >
                       Join Room
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -226,17 +225,19 @@ export default function Home() {
               </h4>
               <div className="flex flex-wrap gap-2">
                 {["general", "design", "brainstorm", "random"].map((room) => (
-                  <button
+                  <Button
                     key={room}
                     onClick={() => handleQuickJoin(room)}
-                    className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-400/50 rounded-lg text-sm font-medium text-gray-200 hover:text-white transition-all duration-200 backdrop-blur-sm hover:shadow-lg hover:shadow-purple-500/20"
+                    variant="ghost"
+                    size="sm"
+                    className="border border-white/10 hover:border-purple-400/50 hover:shadow-lg hover:shadow-purple-500/20"
                   >
                     #{room}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Footer Info */}
           <div className="mt-6 text-center">
@@ -255,97 +256,73 @@ export default function Home() {
       </div>
 
       {/* Auth Modal */}
-      {showAuthModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-md border border-white/10">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">
-                {isSignUp ? "Create Account" : "Sign In"}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowAuthModal(false);
-                  setError("");
-                }}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      <Modal
+        isOpen={showAuthModal}
+        onClose={() => {
+          setShowAuthModal(false);
+          setError("");
+        }}
+        title={isSignUp ? "Create Account" : "Sign In"}
+      >
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/20 border border-red-400/30 rounded-xl">
+            <p className="text-sm text-red-200">{error}</p>
+          </div>
+        )}
 
-            {error && (
-              <div className="mb-4 p-3 bg-red-500/20 border border-red-400/30 rounded-xl">
-                <p className="text-sm text-red-200">{error}</p>
-              </div>
-            )}
+        <div className="space-y-4">
+          {isSignUp && (
+            <Input
+              type="text"
+              label="Name"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="Enter your name"
+              icon={<User className="w-5 h-5" />}
+            />
+          )}
 
-            <div className="space-y-4">
-              {isSignUp && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-200 mb-2">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
-                    placeholder="Enter your name"
-                    className="w-full px-4 py-3 bg-white/5 border-2 border-white/10 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400/50 outline-none transition-all text-white placeholder-gray-400"
-                  />
-                </div>
-              )}
+          <Input
+            type="email"
+            label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
+            icon={<Mail className="w-5 h-5" />}
+          />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="w-full px-4 py-3 bg-white/5 border-2 border-white/10 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400/50 outline-none transition-all text-white placeholder-gray-400"
-                />
-              </div>
+          <Input
+            type="password"
+            label="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
+            icon={<Lock className="w-5 h-5" />}
+          />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full px-4 py-3 bg-white/5 border-2 border-white/10 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400/50 outline-none transition-all text-white placeholder-gray-400"
-                />
-              </div>
+          <Button
+            onClick={handleAuth}
+            variant="primary"
+            size="lg"
+            className="w-full"
+            isLoading={isAuthenticating}
+          >
+            {isSignUp ? "Sign Up" : "Sign In"}
+          </Button>
 
-              <button
-                onClick={handleAuth}
-                disabled={isAuthenticating}
-                className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-xl hover:from-purple-600 hover:to-pink-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-purple-500/50"
-              >
-                {isAuthenticating ? "Please wait..." : (isSignUp ? "Sign Up" : "Sign In")}
-              </button>
-
-              <div className="text-center">
-                <button
-                  onClick={() => {
-                    setIsSignUp(!isSignUp);
-                    setError("");
-                  }}
-                  className="text-sm text-purple-300 hover:text-purple-200"
-                >
-                  {isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
-                </button>
-              </div>
-            </div>
+          <div className="text-center">
+            <button
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError("");
+              }}
+              className="text-sm text-purple-300 hover:text-purple-200"
+            >
+              {isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
+            </button>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

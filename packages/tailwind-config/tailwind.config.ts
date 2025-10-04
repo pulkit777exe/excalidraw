@@ -1,7 +1,5 @@
-import containerQueries from "@tailwindcss/container-queries";
 import forms from "@tailwindcss/forms";
 import typography from "@tailwindcss/typography";
-import * as scrollbarHide from "tailwind-scrollbar-hide";
 import type { Config } from "tailwindcss";
 import radix from "tailwindcss-radix";
 

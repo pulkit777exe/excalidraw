@@ -1,310 +1,71 @@
-"use client";
-
+import * as React from "react";
 import { cn } from "./utils/cn";
-import { timeAgo } from "./utils/timeAgo";
-import { nFormatter } from "./utils/nFormatter";
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
-import Linkify from "linkify-react";
-import { HelpCircle } from "lucide-react";
-import { ReactNode, useState } from "react";
-import { Link } from "react-router-dom";
-import { Badge } from "./badge";
-import { Button, ButtonProps, buttonVariants } from "./button";
-
-export function TooltipProvider({ children }: { children: ReactNode }) {
-  return (
-    <TooltipPrimitive.Provider delayDuration={150}>
-      {children}
-    </TooltipPrimitive.Provider>
-  );
+export interface TooltipProps {
+  content: string;
+  children: React.ReactNode;
+  position?: "top" | "bottom" | "left" | "right";
+  delay?: number;
 }
 
-export interface TooltipProps
-  extends Omit<TooltipPrimitive.TooltipContentProps, "content"> {
-  content:
-    | ReactNode
-    | string
-    | ((props: { setOpen: (open: boolean) => void }) => ReactNode);
-  contentClassName?: string;
-  disabled?: boolean;
-  disableHoverableContent?: TooltipPrimitive.TooltipProps["disableHoverableContent"];
-  delayDuration?: TooltipPrimitive.TooltipProps["delayDuration"];
-}
+const Tooltip: React.FC<TooltipProps> = ({ content, children, position = "top", delay = 200 }) => {
+  const [isVisible, setIsVisible] = React.useState(false);
+  const timeoutRef = React.useRef<NodeJS.Timeout>();
 
-export function Tooltip({
-  children,
-  content,
-  contentClassName,
-  disabled,
-  side = "top",
-  disableHoverableContent,
-  delayDuration = 0,
-  ...rest
-}: TooltipProps) {
-  const [open, setOpen] = useState(false);
+  const handleMouseEnter = () => {
+    timeoutRef.current = setTimeout(() => {
+      setIsVisible(true);
+    }, delay);
+  };
 
-  return (
-    <TooltipPrimitive.Root
-      open={disabled ? false : open}
-      onOpenChange={setOpen}
-      delayDuration={delayDuration}
-      disableHoverableContent={disableHoverableContent}
-    >
-      <TooltipPrimitive.Trigger
-        asChild
-        onClick={() => {
-          setOpen(true);
-        }}
-        onBlur={() => {
-          setOpen(false);
-        }}
-      >
-        {children}
-      </TooltipPrimitive.Trigger>
-      <TooltipPrimitive.Portal>
-        <TooltipPrimitive.Content
-          sideOffset={8}
-          side={side}
-          className="animate-slide-up-fade pointer-events-auto z-[99] items-center overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm"
-          collisionPadding={0}
-          {...rest}
-        >
-          {typeof content === "string" ? (
-            <span
-              className={cn(
-                "block max-w-xs text-pretty px-4 py-2 text-center text-sm text-neutral-700",
-                contentClassName,
-              )}
-            >
-              {content}
-            </span>
-          ) : typeof content === "function" ? (
-            content({ setOpen })
-          ) : (
-            content
-          )}
-        </TooltipPrimitive.Content>
-      </TooltipPrimitive.Portal>
-    </TooltipPrimitive.Root>
-  );
-}
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setIsVisible(false);
+  };
 
-export function TooltipContent({
-  title,
-  cta,
-  href,
-  target,
-  onClick,
-}: {
-  title: ReactNode;
-  cta?: string;
-  href?: string;
-  target?: string;
-  onClick?: () => void;
-}) {
-  return (
-    <div className="flex max-w-xs flex-col items-center space-y-3 p-4 text-center">
-      <p className="text-sm text-neutral-700">{title}</p>
-      {cta &&
-        (href ? (
-          target ? (
-            <a
-              href={href}
-              target={target}
-              rel="noopener noreferrer"
-              className={cn(
-                buttonVariants({ variant: "primary" }),
-                "flex h-9 w-full items-center justify-center whitespace-nowrap rounded-lg border px-4 text-sm",
-              )}
-            >
-              {cta}
-            </a>
-          ) : (
-            <Link
-              to={href}
-              className={cn(
-                buttonVariants({ variant: "primary" }),
-                "flex h-9 w-full items-center justify-center whitespace-nowrap rounded-lg border px-4 text-sm",
-              )}
-            >
-              {cta}
-            </Link>
-          )
-        ) : onClick ? (
-          <Button
-            onClick={onClick}
-            text={cta}
-            variant="primary"
-            className="h-9"
-          />
-        ) : null)}
-    </div>
-  );
-}
-
-export function SimpleTooltipContent({
-  title,
-  cta,
-  href,
-}: {
-  title: string;
-  cta?: string;
-  href?: string;
-}) {
-  return (
-    <div className="max-w-xs px-4 py-2 text-center text-sm text-neutral-700">
-      {title}
-      {cta && href && (
-        <>
-          {" "}
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex text-neutral-500 underline underline-offset-4 hover:text-neutral-800"
-          >
-            {cta}
-          </a>
-        </>
-      )}
-    </div>
-  );
-}
-
-export function LinkifyTooltipContent({
-  children,
-  className,
-  tooltipClassName,
-}: {
-  children: ReactNode;
-  className?: string;
-  tooltipClassName?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "block max-w-xs whitespace-pre-wrap text-balance px-4 py-2 text-center text-sm text-neutral-700",
-        tooltipClassName,
-      )}
-    >
-      <Linkify
-        as="p"
-        options={{
-          target: "_blank",
-          rel: "noopener noreferrer nofollow",
-          className: cn(
-            "underline underline-offset-4 text-neutral-400 hover:text-neutral-700",
-            className,
-          ),
-        }}
-      >
-        {children}
-      </Linkify>
-    </div>
-  );
-}
-
-export function InfoTooltip(props: Omit<TooltipProps, "children">) {
-  return (
-    <Tooltip {...props}>
-      <HelpCircle className="h-4 w-4 text-neutral-500" />
-    </Tooltip>
-  );
-}
-
-export function NumberTooltip({
-  value,
-  unit = "total clicks",
-  prefix,
-  children,
-  lastClicked,
-}: {
-  value?: number | null;
-  unit?: string;
-  prefix?: string;
-  children: ReactNode;
-  lastClicked?: Date | null;
-}) {
-  if ((!value || value < 1000) && !lastClicked) {
-    return children;
-  }
-  return (
-    <Tooltip
-      content={
-        <div className="block max-w-xs px-4 py-2 text-center text-sm text-neutral-700">
-          <p className="text-sm font-semibold text-neutral-700">
-            {prefix}
-            {nFormatter(value || 0, { full: true })} {unit}
-          </p>
-          {lastClicked && (
-            <p
-              className="mt-1 text-xs text-neutral-500"
-              suppressHydrationWarning
-            >
-              Last clicked {timeAgo(lastClicked, { withAgo: true })}
-            </p>
-          )}
-        </div>
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
-    >
+    };
+  }, []);
+
+  const positions = {
+    top: "bottom-full left-1/2 -translate-x-1/2 mb-2",
+    bottom: "top-full left-1/2 -translate-x-1/2 mt-2",
+    left: "right-full top-1/2 -translate-y-1/2 mr-2",
+    right: "left-full top-1/2 -translate-y-1/2 ml-2",
+  };
+
+  const arrows = {
+    top: "top-full left-1/2 -translate-x-1/2 border-t-gray-900 border-x-transparent border-b-transparent",
+    bottom: "bottom-full left-1/2 -translate-x-1/2 border-b-gray-900 border-x-transparent border-t-transparent",
+    left: "left-full top-1/2 -translate-y-1/2 border-l-gray-900 border-y-transparent border-r-transparent",
+    right: "right-full top-1/2 -translate-y-1/2 border-r-gray-900 border-y-transparent border-l-transparent",
+  };
+
+  return (
+    <div className="relative inline-flex" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
       {children}
-    </Tooltip>
-  );
-}
-
-export function BadgeTooltip({ children, content, ...props }: TooltipProps) {
-  return (
-    <Tooltip content={content} {...props}>
-      <div className="flex cursor-pointer items-center">
-        <Badge
-          variant="gray"
-          className="border-neutral-300 transition-all hover:bg-neutral-200"
+      {isVisible && content && (
+        <div
+          className={cn(
+            "absolute z-50 px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg shadow-lg",
+            "whitespace-nowrap pointer-events-none animate-in fade-in-0 zoom-in-95",
+            positions[position]
+          )}
         >
-          {children}
-        </Badge>
-      </div>
-    </Tooltip>
+          {content}
+          <div className={cn("absolute w-2 h-2 border-4", arrows[position])} />
+        </div>
+      )}
+    </div>
   );
-}
+};
 
-export function ButtonTooltip({
-  children,
-  tooltipProps,
-  ...props
-}: {
-  children: ReactNode;
-  tooltipProps: TooltipProps;
-} & ButtonProps) {
-  return (
-    <Tooltip {...tooltipProps}>
-      <button
-        type="button"
-        {...props}
-        className={cn(
-          "flex h-6 w-6 items-center justify-center rounded-md text-neutral-500 transition-colors duration-75 hover:bg-neutral-100 active:bg-neutral-200 disabled:cursor-not-allowed disabled:hover:bg-transparent",
-          props.className,
-        )}
-      >
-        {children}
-      </button>
-    </Tooltip>
-  );
-}
+Tooltip.displayName = "Tooltip";
 
-export function DynamicTooltipWrapper({
-  children,
-  tooltipProps,
-}: {
-  children: ReactNode;
-  tooltipProps?: TooltipProps;
-}) {
-  return tooltipProps ? (
-    <Tooltip {...tooltipProps}>
-      <div>{children}</div>
-    </Tooltip>
-  ) : (
-    children
-  );
-}
+export { Tooltip };
