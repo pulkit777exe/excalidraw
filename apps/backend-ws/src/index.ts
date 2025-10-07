@@ -2,8 +2,18 @@ import { WebSocket, WebSocketServer } from 'ws';
 import jwt from "jsonwebtoken";
 import { prismaClient } from "@repo/db";
 
-const wss = new WebSocketServer({ port: 8080 });
+const PORT = parseInt(process.env.WS_PORT || "8080", 10);
+const wss = new WebSocketServer({ port: PORT });
 const JWT_SECRET = process.env.JWT_SECRET!;
+
+wss.on('error', (err: any) => {
+  if (err && (err.code === 'EADDRINUSE' || err.errno === -98)) {
+    console.error(`WebSocket port ${PORT} is already in use. Set WS_PORT to a free port or stop the other process.`);
+  } else {
+    console.error("WebSocket server error:", err);
+  }
+  process.exit(1);
+});
 
 interface User {
   ws: WebSocket;
@@ -15,11 +25,11 @@ const users: User[] = [];
 
 function checkUser(token: string): string | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (typeof decoded === "string" || !decoded || !decoded.userId) {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    if (!decoded || typeof decoded === "string" || !decoded.userId) {
       return null;
     }
-    return decoded.userId;
+    return String(decoded.userId);
   } catch(e) {
     return null;
   }
@@ -28,7 +38,9 @@ function checkUser(token: string): string | null {
 function broadcastToRoom(roomId: string, message: any, excludeUserId?: string) {
   users.forEach((user) => {
     if (user.rooms.includes(roomId) && user.userId !== excludeUserId) {
-      user.ws.send(JSON.stringify(message));
+      try {
+        user.ws.send(JSON.stringify(message));
+      } catch {}
     }
   });
 }
@@ -49,7 +61,7 @@ wss.on('connection', function connection(ws, request) {
   users.push({ userId, rooms: [], ws });
 
   ws.on('message', async function message(data) {
-    let parsedData;
+    let parsedData: any;
     try {
       parsedData = JSON.parse(data.toString());
     } catch (e) {
@@ -57,47 +69,59 @@ wss.on('connection', function connection(ws, request) {
       return;
     }
 
-    switch (parsedData.type) {
-      case "join_room":
+    const type = parsedData?.type;
+    const roomId = String(parsedData?.roomId || "");
+    if (!type || !roomId) return;
+
+    switch (type) {
+      case "join_room": {
         const user = users.find(x => x.ws === ws);
-        if (user && !user.rooms.includes(parsedData.roomId)) {
-          user.rooms.push(parsedData.roomId);
+        if (user && !user.rooms.includes(roomId)) {
+          user.rooms.push(roomId);
         }
         break;
+      }
 
-      case "leave_room":
+      case "leave_room": {
         const leavingUser = users.find(x => x.ws === ws);
         if (leavingUser) {
-          leavingUser.rooms = leavingUser.rooms.filter(x => x !== parsedData.roomId);
+          leavingUser.rooms = leavingUser.rooms.filter(x => x !== roomId);
         }
         break;
+      }
 
-      case "chat":
-        await prismaClient.chat.create({
-          data: {
-            userId,
-            roomId: parsedData.roomId,
-            message: parsedData.message
+      case "chat": {
+        try {
+          const roomIdNum = Number(roomId);
+          if (Number.isFinite(roomIdNum)) {
+            await prismaClient.chat.create({
+              data: {
+                userId: String(userId),
+                roomId: roomIdNum,
+                message: String(parsedData.message || ""),
+              }
+            });
           }
-        });
-        broadcastToRoom(parsedData.roomId, {
+        } catch (e) {
+          console.error("Failed to persist chat", e);
+        }
+        broadcastToRoom(roomId, {
           type: "chat",
           message: parsedData.message,
-          roomId: parsedData.roomId,
+          roomId,
           userId
         }, userId);
         break;
+      }
 
       case "shape_added":
       case "shape_removed":
       case "shape_updated":
       case "cursor_move":
-        broadcastToRoom(parsedData.roomId, parsedData, userId);
+      case "state_sync": {
+        broadcastToRoom(roomId, parsedData, userId);
         break;
-
-      case "state_sync":
-        broadcastToRoom(parsedData.roomId, parsedData, userId);
-        break;
+      }
     }
   });
 
@@ -109,4 +133,4 @@ wss.on('connection', function connection(ws, request) {
   });
 });
 
-console.log("WebSocket server running on ws://localhost:8080");
+console.log(`WebSocket server running on ws://localhost:${PORT}`);

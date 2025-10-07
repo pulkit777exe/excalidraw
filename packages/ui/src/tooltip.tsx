@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "./utils/cn";
 
@@ -10,7 +12,7 @@ export interface TooltipProps {
 
 const Tooltip: React.FC<TooltipProps> = ({ content, children, position = "top", delay = 200 }) => {
   const [isVisible, setIsVisible] = React.useState(false);
-  const timeoutRef = React.useRef<NodeJS.Timeout>();
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleMouseEnter = () => {
     timeoutRef.current = setTimeout(() => {

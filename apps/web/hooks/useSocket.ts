@@ -6,7 +6,7 @@ export function useSocket(token?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined); // Fixed
+  const reconnectTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (!token) {
@@ -37,7 +37,7 @@ export function useSocket(token?: string) {
           setSocket(null);
           
           // Attempt reconnection after 3 seconds
-          reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectTimeoutRef.current = window.setTimeout(() => {
             console.log("Attempting to reconnect...");
             connectWebSocket();
           }, 3000);

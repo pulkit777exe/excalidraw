@@ -6,7 +6,7 @@ import { configDotenv } from "dotenv";
 configDotenv();
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_ISSUER = "http-backend";
+const JWT_ISSUER = "chat-app";
 
 if (!JWT_SECRET) {
   console.error("FATAL: JWT_SECRET environment variable is not defined");

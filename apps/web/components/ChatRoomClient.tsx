@@ -14,6 +14,17 @@ interface Message {
   };
 }
 
+function sanitizeMessage(raw: string, maxLen = 1000): string {
+  let value = raw.normalize();
+  // Remove control characters except tab/newline/carriage return
+  value = value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+  // Collapse consecutive spaces
+  value = value.replace(/\s{3,}/g, "  ");
+  // Trim and slice
+  value = value.trim().slice(0, maxLen);
+  return value;
+}
+
 export function ChatRoomClient({
   messages,
   id,
@@ -53,7 +64,7 @@ export function ChatRoomClient({
             setChats((prev) => [
               ...prev,
               {
-                message: parsedData.message,
+                message: String(parsedData.message || ""),
                 user: parsedData.user,
                 createdAt: new Date().toISOString(),
               },
@@ -78,13 +89,14 @@ export function ChatRoomClient({
   }, [socket, loading, id]);
 
   const sendMessage = () => {
-    if (!currentMessage.trim() || !socket) return;
+    const clean = sanitizeMessage(currentMessage);
+    if (!clean || !socket || socket.readyState !== WebSocket.OPEN) return;
 
     socket.send(
       JSON.stringify({
         type: "chat",
         roomId: id,
-        message: currentMessage.trim(),
+        message: clean,
       })
     );
 
@@ -100,53 +112,53 @@ export function ChatRoomClient({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-neutral-950 to-neutral-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-neutral-950 to-neutral-900">
         <div className="text-center">
-          <h2 className="text-xl font-bold text-red-600 mb-2">Connection Error</h2>
-          <p className="text-gray-600">{error}</p>
+          <h2 className="text-xl font-bold text-red-400 mb-2">Connection Error</h2>
+          <p className="text-gray-300">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-neutral-950 via-zinc-900 to-neutral-900">
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {chats.map((chat, index) => (
           <div
             key={chat.id || index}
-            className="bg-white rounded-lg p-4 shadow"
+            className="bg-white/5 border border-white/10 rounded-lg p-4 shadow backdrop-blur-sm"
           >
             {chat.user && (
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-black font-bold">
                   {chat.user.name.charAt(0).toUpperCase()}
                 </div>
-                <span className="font-semibold text-sm">{chat.user.name}</span>
+                <span className="font-semibold text-sm text-zinc-100">{chat.user.name}</span>
                 {chat.createdAt && (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-zinc-400">
                     {new Date(chat.createdAt).toLocaleTimeString()}
                   </span>
                 )}
               </div>
             )}
-            <p className="text-gray-800">{chat.message}</p>
+            <p className="text-zinc-100 whitespace-pre-wrap">{chat.message}</p>
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Container */}
-      <div className="border-t bg-white p-4">
+      <div className="border-t border-white/10 bg-white/5 p-4 backdrop-blur-sm">
         <div className="flex gap-2">
           <input
             type="text"
@@ -154,13 +166,14 @@ export function ChatRoomClient({
             onChange={(e) => setCurrentMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
-            className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            maxLength={1000}
+            className="flex-1 px-4 py-2 bg-black/30 text-white placeholder-zinc-400 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-300"
             disabled={!socket}
           />
           <button
             onClick={sendMessage}
-            disabled={!currentMessage.trim() || !socket}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            disabled={!sanitizeMessage(currentMessage) || !socket}
+            className="px-6 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
           >
             Send
           </button>

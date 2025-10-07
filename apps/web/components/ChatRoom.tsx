@@ -26,41 +26,61 @@ export default function ChatRoom() {
   const [roomData, setRoomData] = useState<{
     messages: Message[];
     token: string;
+    id: string;
   } | null>(null);
 
-  const roomId = params?.roomId as string;
+  const slug = params?.slug as string;
   const token = searchParams?.get("token");
-  const userName = searchParams?.get("name");
 
   useEffect(() => {
-    // Redirect if no token provided
+    if (!slug) return;
+
     if (!token) {
       router.push("/");
       return;
     }
 
-    // Initialize room: fetch messages
     const initializeRoom = async () => {
       try {
-        // Fetch room messages
-        const messagesResponse = await fetch(`${BACKEND_URL}/api/room/${roomId}`, {
+        // Fetch room by slug to get numeric id
+        const roomRes = await fetch(`${BACKEND_URL}/api/room/${slug}`, {
           method: "GET",
           headers: {
-            "Authorization": `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!roomRes.ok) {
+          setError(roomRes.status === 404 ? "Room not found" : "Failed to load room");
+          setIsLoading(false);
+          return;
+        }
+
+        const roomJson = await roomRes.json();
+        const roomIdNum: number | undefined = roomJson?.data?.room?.id;
+        if (!roomIdNum) {
+          setError("Invalid room response");
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch recent chats by numeric room id
+        const chatsRes = await fetch(`${BACKEND_URL}/api/chats/${roomIdNum}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
 
         let messages: Message[] = [];
-        if (messagesResponse.ok) {
-          const data = await messagesResponse.json();
-          messages = data.chats || [];
+        if (chatsRes.ok) {
+          const chatsJson = await chatsRes.json();
+          messages = chatsJson?.data?.messages || [];
         }
 
-        setRoomData({
-          messages,
-          token,
-        });
+        setRoomData({ messages, token, id: String(roomIdNum) });
         setIsLoading(false);
       } catch (err) {
         console.error("Room initialization error:", err);
@@ -70,11 +90,7 @@ export default function ChatRoom() {
     };
 
     initializeRoom();
-  }, [roomId, token, router]);
-
-  if (!userName) {
-    return null; // Will redirect
-  }
+  }, [slug, token, router]);
 
   if (isLoading) {
     return (
@@ -82,7 +98,7 @@ export default function ChatRoom() {
         <div className="text-center">
           <div className="inline-block w-16 h-16 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-white text-lg">Connecting to room...</p>
-          <p className="text-gray-400 text-sm mt-2">{roomId}</p>
+          <p className="text-gray-400 text-sm mt-2">{slug}</p>
         </div>
       </div>
     );
@@ -108,7 +124,7 @@ export default function ChatRoom() {
   return (
     <ChatRoomClient
       messages={roomData.messages}
-      id={roomId}
+      id={roomData.id}
       token={roomData.token}
     />
   );

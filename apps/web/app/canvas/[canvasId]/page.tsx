@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { 
   Toolbar, 
   ToolbarGroup, 
@@ -36,7 +36,7 @@ type FillColor = "red" | "blue" | "green" | "yellow" | "none";
 type Tool = "select" | "pan" | "draw";
 
 interface CanvasPageProps {
-  params: Promise<{ roomId: string }>;
+  params: { canvasId: string };
 }
 
 interface CollaboratorUser {
@@ -46,7 +46,7 @@ interface CollaboratorUser {
 }
 
 export default function CanvasPage({ params }: CanvasPageProps) {
-  const { roomId } = use(params);
+  const { canvasId } = params;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<CollaborativeEngine | null>(null);
   const [currentShape, setCurrentShape] = useState<ShapeType>("rectangle");
@@ -64,14 +64,14 @@ export default function CanvasPage({ params }: CanvasPageProps) {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
 
-    const token = sessionStorage.getItem("authToken");
-    const userName = sessionStorage.getItem("userName") || "Anonymous";
+    const token = typeof window !== "undefined" ? sessionStorage.getItem("authToken") : null;
+    const userName = typeof window !== "undefined" ? (sessionStorage.getItem("userName") || "Anonymous") : "Anonymous";
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
 
     engineRef.current = new CollaborativeEngine(
       canvas,
       userName,
-      roomId,
+      canvasId,
       `${wsUrl}?token=${token}`,
       currentShape,
       currentColor
@@ -79,7 +79,6 @@ export default function CanvasPage({ params }: CanvasPageProps) {
 
     setIsConnected(true);
 
-    // Simulate collaborator updates
     const interval = setInterval(() => {
       const mockUsers: CollaboratorUser[] = [
         { id: "1", name: userName, status: "online" },
@@ -93,7 +92,7 @@ export default function CanvasPage({ params }: CanvasPageProps) {
       clearInterval(interval);
       engineRef.current?.destroy();
     };
-  }, [roomId]);
+  }, [canvasId, currentColor, currentShape]);
 
   useEffect(() => {
     engineRef.current?.setShape(currentShape);
@@ -144,16 +143,16 @@ export default function CanvasPage({ params }: CanvasPageProps) {
   const colors: FillColor[] = ["none", "red", "blue", "green", "yellow"];
 
   return (
-    <div className="w-full h-screen bg-gradient-to-br from-gray-900 to-slate-900 flex flex-col">
+    <div className="w-full h-screen bg-gradient-to-br from-neutral-950 to-neutral-900 flex flex-col">
       <TopBar />
       
       {/* Status Bar */}
-      <div className="bg-gray-900/50 backdrop-blur-sm px-6 py-3 border-b border-white/10 flex items-center justify-between">
+      <div className="bg-black/30 backdrop-blur-sm px-6 py-3 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-            <span className="text-sm text-gray-300 font-medium">
-              Room: <span className="text-white font-bold">{roomId}</span>
+            <div className="w-2 h-2 bg-zinc-300 rounded-full animate-pulse"></div>
+            <span className="text-sm text-zinc-300 font-medium">
+              Room: <span className="text-white font-bold">{canvasId}</span>
             </span>
           </div>
           <Badge variant={isConnected ? "success" : "error"}>
@@ -164,8 +163,8 @@ export default function CanvasPage({ params }: CanvasPageProps) {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-blue-400" />
-            <span className="text-sm font-medium text-blue-400">{collaborators.length} online</span>
+            <Users className="w-4 h-4 text-zinc-300" />
+            <span className="text-sm font-medium text-zinc-300">{collaborators.length} online</span>
           </div>
           <AvatarGroup max={3}>
             {collaborators.map((user) => (
@@ -243,7 +242,7 @@ export default function CanvasPage({ params }: CanvasPageProps) {
 
         <ToolbarSeparator />
 
-        {/* Colors Group */}
+        {/* Colors Group (kept colorful for drawing) */}
         <ToolbarGroup label="Color">
           <ToolbarColorPicker
             colors={colors}
@@ -328,22 +327,22 @@ export default function CanvasPage({ params }: CanvasPageProps) {
       </div>
 
       {/* Help Text */}
-      <div className="bg-gray-900/50 backdrop-blur-sm px-6 py-3 border-t border-white/10">
-        <div className="flex items-center justify-center gap-6 text-gray-400 text-xs flex-wrap">
+      <div className="bg-black/30 backdrop-blur-sm px-6 py-3 border-t border-white/10">
+        <div className="flex items-center justify-center gap-6 text-zinc-300 text-xs flex-wrap">
           <span className="flex items-center gap-2">
-            <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-300 border border-gray-700 font-mono">Scroll</kbd>
+            <kbd className="px-2 py-1 bg-black/50 rounded text-zinc-200 border border-white/10 font-mono">Scroll</kbd>
             Zoom
           </span>
           <span className="flex items-center gap-2">
-            <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-300 border border-gray-700 font-mono">Space</kbd>
+            <kbd className="px-2 py-1 bg-black/50 rounded text-zinc-200 border border-white/10 font-mono">Space</kbd>
             Pan
           </span>
           <span className="flex items-center gap-2">
-            <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-300 border border-gray-700 font-mono">Del</kbd>
+            <kbd className="px-2 py-1 bg-black/50 rounded text-zinc-200 border border-white/10 font-mono">Del</kbd>
             Delete
           </span>
           <span className="flex items-center gap-2">
-            <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-300 border border-gray-700 font-mono">D/S</kbd>
+            <kbd className="px-2 py-1 bg-black/50 rounded text-zinc-200 border border-white/10 font-mono">D/S</kbd>
             Draw/Select
           </span>
         </div>
