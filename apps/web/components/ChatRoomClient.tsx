@@ -16,8 +16,8 @@ interface Message {
 
 function sanitizeMessage(raw: string, maxLen = 1000): string {
   let value = raw.normalize();
-  // Remove control characters except tab/newline/carriage return
-  value = value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+  // Remove control characters except tab(\t), newline(\n), carriage return(\r)
+  value = value.replace(new RegExp("[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "g"), "");
   // Collapse consecutive spaces
   value = value.replace(/\s{3,}/g, "  ");
   // Trim and slice

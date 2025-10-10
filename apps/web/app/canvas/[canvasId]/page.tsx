@@ -35,18 +35,14 @@ type ShapeType = "rectangle" | "circle" | "line";
 type FillColor = "red" | "blue" | "green" | "yellow" | "none"; 
 type Tool = "select" | "pan" | "draw";
 
-interface CanvasPageProps {
-  params: { canvasId: string };
-}
-
 interface CollaboratorUser {
   id: string;
   name: string;
   status: "online" | "offline";
 }
 
-export default function CanvasPage({ params }: CanvasPageProps) {
-  const { canvasId } = params;
+export default function CanvasPage({ params }: any) {
+  const { canvasId } = params as { canvasId: string };
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<CollaborativeEngine | null>(null);
   const [currentShape, setCurrentShape] = useState<ShapeType>("rectangle");
