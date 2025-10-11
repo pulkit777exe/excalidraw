@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSocket } from "../hooks/useSocket";
+import { useRoomStore, useAuthStore } from "@repo/store";
+import { Input, Button, Card, Avatar } from "@repo/ui";
 
 interface Message {
   id?: string;
@@ -29,26 +31,45 @@ export function ChatRoomClient({
   messages,
   id,
   token,
+  userName,
 }: {
   messages: Message[];
   id: string;
   token: string;
+  userName: string;
 }) {
-  const [chats, setChats] = useState<Message[]>(messages);
   const [currentMessage, setCurrentMessage] = useState("");
   const { socket, loading, error } = useSocket(token);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasJoinedRoom = useRef(false);
 
+  // Store hooks
+  const { 
+    messages: storeMessages, 
+    addMessage, 
+    setMessages, 
+    setConnected, 
+    setError: setRoomError,
+    clearError: clearRoomError 
+  } = useRoomStore();
+
+  const { user } = useAuthStore();
+
+  // Initialize messages from props
+  useEffect(() => {
+    setMessages(messages);
+  }, [messages, setMessages]);
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chats]);
+  }, [storeMessages]);
 
   // Join room and handle messages
   useEffect(() => {
     if (socket && !loading && !hasJoinedRoom.current) {
       hasJoinedRoom.current = true;
+      setConnected(true);
       
       socket.send(
         JSON.stringify({
@@ -61,17 +82,16 @@ export function ChatRoomClient({
         try {
           const parsedData = JSON.parse(event.data);
           if (parsedData.type === "chat") {
-            setChats((prev) => [
-              ...prev,
-              {
-                message: String(parsedData.message || ""),
-                user: parsedData.user,
-                createdAt: new Date().toISOString(),
-              },
-            ]);
+            const newMessage: Message = {
+              message: String(parsedData.message || ""),
+              user: parsedData.user || { id: parsedData.userId, name: userName, email: "" },
+              createdAt: new Date().toISOString(),
+            };
+            addMessage(newMessage);
           }
         } catch (err) {
           console.error("Error parsing message:", err);
+          setRoomError("Failed to parse message");
         }
       };
     }
@@ -84,9 +104,10 @@ export function ChatRoomClient({
             roomId: id,
           })
         );
+        setConnected(false);
       }
     };
-  }, [socket, loading, id]);
+  }, [socket, loading, id, userName, addMessage, setConnected, setRoomError]);
 
   const sendMessage = () => {
     const clean = sanitizeMessage(currentMessage);
@@ -97,6 +118,7 @@ export function ChatRoomClient({
         type: "chat",
         roomId: id,
         message: clean,
+        user: { name: userName }, // Include user name for display
       })
     );
 
@@ -112,7 +134,7 @@ export function ChatRoomClient({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-neutral-950 to-neutral-900">
+      <div className="flex items-center justify-center h-screen bg-neutral-950">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white" />
       </div>
     );
@@ -120,7 +142,7 @@ export function ChatRoomClient({
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-neutral-950 to-neutral-900">
+      <div className="flex items-center justify-center h-screen bg-neutral-950">
         <div className="text-center">
           <h2 className="text-xl font-bold text-red-400 mb-2">Connection Error</h2>
           <p className="text-gray-300">{error}</p>
@@ -130,53 +152,48 @@ export function ChatRoomClient({
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-neutral-950 via-zinc-900 to-neutral-900">
+    <div className="flex flex-col h-screen bg-neutral-950 text-white">
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {chats.map((chat, index) => (
-          <div
-            key={chat.id || index}
-            className="bg-white/5 border border-white/10 rounded-lg p-4 shadow backdrop-blur-sm"
-          >
+        {storeMessages.map((chat, index) => (
+          <Card key={chat.id || index} variant="glass" className="p-4">
             {chat.user && (
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-black font-bold">
-                  {chat.user.name.charAt(0).toUpperCase()}
-                </div>
-                <span className="font-semibold text-sm text-zinc-100">{chat.user.name}</span>
+                <Avatar name={chat.user.name} size="sm" />
+                <span className="font-semibold text-sm text-white">{chat.user.name}</span>
                 {chat.createdAt && (
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-neutral-400">
                     {new Date(chat.createdAt).toLocaleTimeString()}
                   </span>
                 )}
               </div>
             )}
-            <p className="text-zinc-100 whitespace-pre-wrap">{chat.message}</p>
-          </div>
+            <p className="text-neutral-200">{chat.message}</p>
+          </Card>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Container */}
-      <div className="border-t border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+      <div className="border-t border-neutral-700 bg-neutral-900 p-4">
         <div className="flex gap-2">
-          <input
+          <Input
             type="text"
             value={currentMessage}
             onChange={(e) => setCurrentMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
+            className="flex-1"
+            disabled={!socket || socket.readyState !== WebSocket.OPEN}
             maxLength={1000}
-            className="flex-1 px-4 py-2 bg-black/30 text-white placeholder-zinc-400 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-300"
-            disabled={!socket}
           />
-          <button
+          <Button
             onClick={sendMessage}
-            disabled={!sanitizeMessage(currentMessage) || !socket}
-            className="px-6 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
+            disabled={!currentMessage.trim() || !socket || socket.readyState !== WebSocket.OPEN}
+            variant="primary"
           >
             Send
-          </button>
+          </Button>
         </div>
       </div>
     </div>

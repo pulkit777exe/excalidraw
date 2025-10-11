@@ -12,23 +12,23 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-gray-200 mb-2">
+          <label className="block text-sm font-medium text-content-emphasis mb-2">
             {label}
           </label>
         )}
         <div className="relative">
           {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-content-muted">
               {icon}
             </div>
           )}
           <input
             type={type}
             className={cn(
-              "w-full px-4 py-3 bg-white/5 border-2 border-white/10 rounded-xl",
+              "w-full px-4 py-3 bg-bg-emphasis border-2 border-border-default rounded-xl",
               "focus:ring-2 focus:ring-purple-400 focus:border-purple-400/50",
-              "outline-none transition-all text-white placeholder-gray-400",
-              "hover:bg-white/10 backdrop-blur-sm",
+              "outline-none transition-all text-content-emphasis placeholder-content-muted",
+              "hover:bg-bg-subtle backdrop-blur-sm",
               icon && "pl-10",
               error && "border-red-400/50 focus:ring-red-400",
               className

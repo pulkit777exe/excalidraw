@@ -2,7 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Input, Card, Modal } from "@repo/ui";
+import { 
+  Button, 
+  Input, 
+  Card, 
+  Modal, 
+  Section, 
+  SectionContainer, 
+  SectionHeader, 
+  SectionTitle, 
+  SectionDescription,
+  Layout,
+  FeatureCard,
+  Background
+} from "@repo/ui";
+import { useAuthStore, useUIStore } from "@repo/store";
 import TopBar from "../components/TopBar";
 import { Mail, Lock, User, Plus, LogIn } from "lucide-react";
 
@@ -40,14 +54,29 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [customRoomId, setCustomRoomId] = useState("");
-  const [error, setError] = useState("");
-  const [isSignUp, setIsSignUp] = useState(true);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const router = useRouter();
 
-  const BACKEND_URL =
-    process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3008";
+  const { 
+    user, 
+    isAuthenticated, 
+    isLoading: authLoading, 
+    error: authError, 
+    login, 
+    setLoading, 
+    setError, 
+    clearError 
+  } = useAuthStore();
+
+  const { 
+    showAuthModal, 
+    isSignUp, 
+    error: uiError, 
+    setShowAuthModal, 
+    setIsSignUp
+  } = useUIStore();
+
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3008";
+  const error = authError || uiError;
 
   const handleAuth = async () => {
     const trimmedEmail = email.trim();
@@ -64,8 +93,8 @@ export default function Home() {
       return;
     }
 
-    setIsAuthenticating(true);
-    setError("");
+    setLoading(true);
+    clearError();
 
     try {
       const endpoint = isSignUp ? "/api/auth/signup" : "/api/auth/signin";
@@ -85,14 +114,9 @@ export default function Home() {
         throw new Error(data.error || "Authentication failed");
       }
 
-      sessionStorage.setItem("authToken", data.token);
-      sessionStorage.setItem(
-        "userName",
-        isSignUp ? trimmedName : data.user?.name || trimmedEmail
-      );
-
+      login(data.user, data.token);
       setShowAuthModal(false);
-      setError("");
+      clearError();
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -100,39 +124,29 @@ export default function Home() {
         setError("Authentication failed");
       }
     } finally {
-      setIsAuthenticating(false);
+      setLoading(false);
     }
   };
 
-  function safeSessionGet(key: string): string | null {
-    if (typeof window === "undefined") return null;
-    return sessionStorage.getItem(key);
-  }
-
   const handleCreateRoom = () => {
-    const token = safeSessionGet("authToken");
-    const storedName = safeSessionGet("userName");
-
-    if (!token) {
+    if (!isAuthenticated) {
       setShowAuthModal(true);
       return;
     }
 
     const roomId = generateRoomId();
     router.push(
-      `/room/${roomId}?token=${token}&name=${encodeURIComponent(storedName || "User")}`
+      `/room/${roomId}?token=${user?.id}&name=${encodeURIComponent(user?.name || "User")}`
     );
   };
 
   const handleJoinRoom = () => {
-    const token = safeSessionGet("authToken");
-    const storedName = safeSessionGet("userName");
-    const roomId = customRoomId.trim().toLowerCase();
-
-    if (!token) {
+    if (!isAuthenticated) {
       setShowAuthModal(true);
       return;
     }
+
+    const roomId = customRoomId.trim().toLowerCase();
 
     if (!roomId) {
       setError("Please enter a room ID");
@@ -147,165 +161,132 @@ export default function Home() {
     }
 
     router.push(
-      `/room/${roomId}?token=${token}&name=${encodeURIComponent(storedName || "User")}`
+      `/room/${roomId}?token=${user?.id}&name=${encodeURIComponent(user?.name || "User")}`
     );
   };
 
   const handleQuickJoin = (room: string) => {
-    const token = sessionStorage.getItem("authToken");
-    const storedName = sessionStorage.getItem("userName");
-
-    if (!token) {
+    if (!isAuthenticated) {
       setShowAuthModal(true);
       return;
     }
 
     router.push(
-      `/room/${room}?token=${token}&name=${encodeURIComponent(storedName || "User")}`
+      `/room/${room}?token=${user?.id}&name=${encodeURIComponent(user?.name || "User")}`
     );
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-zinc-900 to-neutral-900 relative overflow-hidden">
-      {/* Subtle animated background in grayscale */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
-        <div
-          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: "1s" }}
-        ></div>
-      </div>
+  const handleCloseModal = () => {
+    setShowAuthModal(false);
+    clearError();
+  };
 
+  const handleToggleAuthMode = () => {
+    setIsSignUp(!isSignUp);
+    clearError();
+  };
+
+  return (
+    <Background variant="animated">
       <TopBar />
 
-      <div className="flex items-center justify-center min-h-[calc(100vh-3rem)] p-4 relative z-10">
-        <div className="w-full max-w-2xl">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center mb-4 relative">
-              <h1 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-neutral-200 via-zinc-300 to-slate-200 mb-2 tracking-tight relative z-10">
-                Escalidraw
-              </h1>
-              <div className="absolute -inset-4 bg-gradient-to-r from-white/10 via-white/5 to-white/10 rounded-2xl blur-2xl -z-10"></div>
-            </div>
-            <p className="text-lg text-zinc-300 font-light">
+      <Section variant="hero" background="default">
+        <SectionContainer>
+          <SectionHeader>
+            <SectionTitle>Escalidraw</SectionTitle>
+            <SectionDescription>
               Real-time collaborative drawing and chat
-            </p>
-          </div>
+            </SectionDescription>
+          </SectionHeader>
 
-          {/* Main Card */}
-          <Card variant="glass" className="p-6 md:p-8 bg-white/5 border border-white/10">
-            {error && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-400/30 rounded-xl backdrop-blur-sm">
-                <p className="text-sm text-red-200 font-medium">{error}</p>
-              </div>
-            )}
-
-            {/* Two Options */}
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
-              {/* Create New Room */}
-              <button
-                onClick={handleCreateRoom}
-                className="group bg-gradient-to-br from-white/5 to-white/0 border-2 border-white/10 rounded-2xl p-5 hover:border-white/30 hover:from-white/10 hover:to-white/5 transition-all duration-300 hover:shadow-xl hover:shadow-black/20 hover:-translate-y-1 text-left"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-neutral-200 to-neutral-400 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                    <Plus className="w-6 h-6 text-black" strokeWidth={2.5} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-white mb-1">
-                      Create New Room
-                    </h3>
-                    <p className="text-sm text-zinc-300">
-                      Start fresh with a random room ID
-                    </p>
-                  </div>
+          <Layout variant="centered">
+            <Card variant="glass" className="w-full max-w-2xl">
+              {error && (
+                <div className="mb-4 p-3 bg-red-500/20 border border-red-400/30 rounded-xl backdrop-blur-sm">
+                  <p className="text-sm text-red-200 font-medium">{error}</p>
                 </div>
-              </button>
+              )}
 
-              {/* Join Existing Room */}
-              <div className="group bg-gradient-to-br from-white/5 to-white/0 border-2 border-white/10 rounded-2xl p-5 hover:border-white/30 hover:from-white/10 hover:to-white/5 transition-all duration-300">
-                <div className="flex items-start gap-4 mb-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-neutral-200 to-neutral-400 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                    <LogIn className="w-6 h-6 text-black" strokeWidth={2.5} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-white mb-1">
-                      Join Existing Room
-                    </h3>
-                    <p className="text-sm text-zinc-300 mb-3">
-                      Enter a room ID to collaborate
-                    </p>
-                    <input
-                      type="text"
-                      value={customRoomId}
-                      onChange={(e) => {
-                        setCustomRoomId(e.target.value);
-                        setError("");
-                      }}
-                      placeholder="e.g., swift-tiger-123"
-                      className="w-full px-3 py-2 mb-2 bg-white/5 border-2 border-white/10 rounded-lg focus:ring-2 focus:ring-zinc-300 focus:border-white/40 outline-none transition-all text-white text-sm placeholder-gray-400 backdrop-blur-sm hover:bg-white/10"
-                    />
-                    <Button
-                      onClick={handleJoinRoom}
-                      variant="secondary"
-                      size="sm"
-                      className="w-full"
-                    >
-                      Join Room
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+              <Layout variant="default" spacing="lg">
+                <FeatureCard
+                  icon={<Plus />}
+                  title="Create New Room"
+                  description="Start fresh with a random room ID"
+                  onClick={handleCreateRoom}
+                  className="cursor-pointer"
+                />
 
-            {/* Quick Join Section */}
-            <div className="pt-6 border-t-2 border-white/10">
-              <h4 className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 bg-zinc-300 rounded-full animate-pulse"></span>
-                Popular Rooms
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {["general", "design", "brainstorm", "random"].map((room) => (
-                  <Button
-                    key={room}
-                    onClick={() => handleQuickJoin(room)}
-                    variant="ghost"
-                    size="sm"
-                    className="border border-white/10 hover:border-white/30 hover:shadow-lg hover:shadow-black/20"
+                <Layout variant="default" spacing="md">
+                  <FeatureCard
+                    icon={<LogIn />}
+                    title="Join Existing Room"
+                    description="Enter a room ID to collaborate"
+                    variant="glass"
                   >
-                    #{room}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </Card>
+                    <Layout variant="default" spacing="sm">
+                      <input
+                        type="text"
+                        value={customRoomId}
+                        onChange={(e) => {
+                          setCustomRoomId(e.target.value);
+                          clearError();
+                        }}
+                        placeholder="e.g., swift-tiger-123"
+                        className="w-full px-3 py-2 mb-2 bg-white/5 border-2 border-white/10 rounded-lg focus:ring-2 focus:ring-zinc-300 focus:border-white/40 outline-none transition-all text-white text-sm placeholder-gray-400 backdrop-blur-sm hover:bg-white/10"
+                      />
+                      <Button
+                        onClick={handleJoinRoom}
+                        variant="secondary"
+                        size="sm"
+                        className="w-full"
+                      >
+                        Join Room
+                      </Button>
+                    </Layout>
+                  </FeatureCard>
+                </Layout>
 
-          {/* Footer Info */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-zinc-400 flex items-center justify-center gap-2">
-              <span className="w-1.5 h-1.5 bg-zinc-300 rounded-full animate-pulse"></span>
-              Rooms are created automatically • All sessions are collaborative
-            </p>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="mt-3 text-sm text-zinc-200 hover:text-zinc-100 underline"
-            >
-              {typeof window !== "undefined" && safeSessionGet("authToken")
-                ? "Switch Account"
-                : "Sign In / Sign Up"}
-            </button>
-          </div>
-        </div>
-      </div>
+                <Layout variant="default" spacing="sm">
+                  <h4 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-zinc-300 rounded-full animate-pulse"></span>
+                    Popular Rooms
+                  </h4>
+                  <Layout variant="default" spacing="sm">
+                    {["general", "design", "brainstorm", "random"].map((room) => (
+                      <Button
+                        key={room}
+                        onClick={() => handleQuickJoin(room)}
+                        variant="ghost"
+                        size="sm"
+                        className="border border-white/10 hover:border-white/30 hover:shadow-lg hover:shadow-black/20"
+                      >
+                        #{room}
+                      </Button>
+                    ))}
+                  </Layout>
+                </Layout>
+              </Layout>
+            </Card>
 
-      {/* Auth Modal */}
+            <Layout variant="default" spacing="sm">
+              <p className="text-sm text-zinc-400 flex items-center justify-center gap-2">
+                <span className="w-1.5 h-1.5 bg-zinc-300 rounded-full animate-pulse"></span>
+                Rooms are created automatically • All sessions are collaborative
+              </p>
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="text-sm text-zinc-200 hover:text-zinc-100 underline"
+              >
+                {isAuthenticated ? "Switch Account" : "Sign In / Sign Up"}
+              </button>
+            </Layout>
+          </Layout>
+        </SectionContainer>
+      </Section>
+
       <Modal
         isOpen={showAuthModal}
-        onClose={() => {
-          setShowAuthModal(false);
-          setError("");
-        }}
+        onClose={handleCloseModal}
         title={isSignUp ? "Create Account" : "Sign In"}
       >
         {error && (
@@ -314,7 +295,7 @@ export default function Home() {
           </div>
         )}
 
-        <div className="space-y-4">
+        <Layout variant="default" spacing="md">
           {isSignUp && (
             <Input
               type="text"
@@ -349,17 +330,14 @@ export default function Home() {
             variant="primary"
             size="lg"
             className="w-full"
-            isLoading={isAuthenticating}
+            isLoading={authLoading}
           >
             {isSignUp ? "Sign Up" : "Sign In"}
           </Button>
 
           <div className="text-center">
             <button
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError("");
-              }}
+              onClick={handleToggleAuthMode}
               className="text-sm text-zinc-200 hover:text-zinc-100"
             >
               {isSignUp
@@ -367,8 +345,8 @@ export default function Home() {
                 : "Don't have an account? Sign Up"}
             </button>
           </div>
-        </div>
+        </Layout>
       </Modal>
-    </div>
+    </Background>
   );
 }

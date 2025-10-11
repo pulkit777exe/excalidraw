@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { 
   Toolbar, 
   ToolbarGroup, 
@@ -11,8 +11,11 @@ import {
   Badge,
   Avatar,
   AvatarGroup,
-  Tooltip
+  Tooltip,
+  Layout,
+  Section
 } from "@repo/ui";
+import { useCanvasStore, useAuthStore, useRoomStore } from "@repo/store";
 import TopBar from "../../../components/TopBar";
 import { CollaborativeEngine } from "../../../utils/engine";
 import { 
@@ -31,27 +34,34 @@ import {
   Redo2
 } from "lucide-react";
 
-type ShapeType = "rectangle" | "circle" | "line"; 
-type FillColor = "red" | "blue" | "green" | "yellow" | "none"; 
-type Tool = "select" | "pan" | "draw";
-
 interface CollaboratorUser {
   id: string;
   name: string;
   status: "online" | "offline";
 }
 
-export default function CanvasPage({ params }: any) {
-  const { canvasId } = params as { canvasId: string };
+export default async function CanvasPage({ params }: { params: Promise<{ canvasId: string }> }) {
+  const { canvasId } = await params;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<CollaborativeEngine | null>(null);
-  const [currentShape, setCurrentShape] = useState<ShapeType>("rectangle");
-  const [currentColor, setCurrentColor] = useState<FillColor>("none");
-  const [currentTool, setCurrentTool] = useState<Tool>("draw");
-  const [isConnected, setIsConnected] = useState(false);
-  const [collaborators, setCollaborators] = useState<CollaboratorUser[]>([
-    { id: "1", name: "You", status: "online" },
-  ]);
+
+  const { 
+    currentShape, 
+    currentColor, 
+    currentTool, 
+    setShape, 
+    setColor, 
+    setTool 
+  } = useCanvasStore();
+
+  const { user, token } = useAuthStore();
+  
+  const { 
+    collaborators, 
+    isConnected, 
+    addCollaborator, 
+    setConnected 
+  } = useRoomStore();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -60,8 +70,7 @@ export default function CanvasPage({ params }: any) {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
 
-    const token = typeof window !== "undefined" ? sessionStorage.getItem("authToken") : null;
-    const userName = typeof window !== "undefined" ? (sessionStorage.getItem("userName") || "Anonymous") : "Anonymous";
+    const userName = user?.name || "Anonymous";
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
 
     engineRef.current = new CollaborativeEngine(
@@ -73,22 +82,33 @@ export default function CanvasPage({ params }: any) {
       currentColor
     );
 
-    setIsConnected(true);
+    setConnected(true);
+
+    addCollaborator({
+      id: user?.id || "1",
+      name: userName,
+      status: "online"
+    });
 
     const interval = setInterval(() => {
       const mockUsers: CollaboratorUser[] = [
-        { id: "1", name: userName, status: "online" },
+        { id: user?.id || "1", name: userName, status: "online" },
         { id: "2", name: "Alex Smith", status: "online" },
         { id: "3", name: "Jordan Lee", status: "online" },
       ];
-      setCollaborators(mockUsers.slice(0, Math.floor(Math.random() * 3) + 1));
+      
+      // Update collaborators in store
+      mockUsers.slice(0, Math.floor(Math.random() * 3) + 1).forEach(collab => {
+        addCollaborator(collab);
+      });
     }, 5000);
 
     return () => {
       clearInterval(interval);
       engineRef.current?.destroy();
+      setConnected(false);
     };
-  }, [canvasId, currentColor, currentShape]);
+  }, [canvasId, currentColor, currentShape, user, token, addCollaborator, setConnected]);
 
   useEffect(() => {
     engineRef.current?.setShape(currentShape);
@@ -107,18 +127,18 @@ export default function CanvasPage({ params }: any) {
       if (e.key === "Delete" || e.key === "Backspace") {
         engineRef.current?.deleteSelected();
       } else if (e.key === "d" || e.key === "D") {
-        setCurrentTool("draw");
+        setTool("draw");
       } else if (e.key === "s" || e.key === "S") {
-        setCurrentTool("select");
+        setTool("select");
       } else if (e.key === " ") {
         e.preventDefault();
-        setCurrentTool("pan");
+        setTool("pan");
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === " ") {
-        setCurrentTool("draw");
+        setTool("draw");
       }
     };
 
@@ -129,55 +149,54 @@ export default function CanvasPage({ params }: any) {
       window.removeEventListener("keydown", handleKeyPress);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, []);
+  }, [setTool]);
 
-  const handleSelectShape = (shape: ShapeType) => {
-    setCurrentShape(shape);
-    setCurrentTool("draw");
+  const handleSelectShape = (shape: "rectangle" | "circle" | "line") => {
+    setShape(shape);
+    setTool("draw");
   };
 
-  const colors: FillColor[] = ["none", "red", "blue", "green", "yellow"];
+  const colors: ("none" | "red" | "blue" | "green" | "yellow")[] = ["none", "red", "blue", "green", "yellow"];
 
   return (
-    <div className="w-full h-screen bg-gradient-to-br from-neutral-950 to-neutral-900 flex flex-col">
+    <Layout>
       <TopBar />
       
-      {/* Status Bar */}
-      <div className="bg-black/30 backdrop-blur-sm px-6 py-3 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-zinc-300 rounded-full animate-pulse"></div>
-            <span className="text-sm text-zinc-300 font-medium">
-              Room: <span className="text-white font-bold">{canvasId}</span>
-            </span>
+      <Section className="bg-neutral-900/50 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-zinc-300 rounded-full animate-pulse"></div>
+              <span className="text-sm text-zinc-300 font-medium">
+                Room: <span className="text-white font-bold">{canvasId}</span>
+              </span>
+            </div>
+            <Badge variant={isConnected ? "success" : "error"}>
+              <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-400" : "bg-red-400"} animate-pulse`} />
+              {isConnected ? "Connected" : "Disconnected"}
+            </Badge>
           </div>
-          <Badge variant={isConnected ? "success" : "error"}>
-            <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-400" : "bg-red-400"} animate-pulse`} />
-            {isConnected ? "Connected" : "Disconnected"}
-          </Badge>
-        </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-zinc-300" />
-            <span className="text-sm font-medium text-zinc-300">{collaborators.length} online</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-zinc-300" />
+              <span className="text-sm font-medium text-zinc-300">{collaborators.length} online</span>
+            </div>
+            <AvatarGroup max={3}>
+              {collaborators.map((user) => (
+                <Avatar key={user.id} name={user.name} size="sm" status={user.status} />
+              ))}
+            </AvatarGroup>
           </div>
-          <AvatarGroup max={3}>
-            {collaborators.map((user) => (
-              <Avatar key={user.id} name={user.name} size="sm" status={user.status} />
-            ))}
-          </AvatarGroup>
         </div>
-      </div>
+      </Section>
       
-      {/* Toolbar */}
       <Toolbar variant="default">
-        {/* Tools Group */}
         <ToolbarGroup label="Tools">
           <Tooltip content="Draw (D)">
             <ToolbarButton
               active={currentTool === "draw"}
-              onClick={() => setCurrentTool("draw")}
+              onClick={() => setTool("draw")}
               icon={<Pencil className="w-4 h-4" />}
             >
               <span className="hidden lg:inline">Draw</span>
@@ -186,7 +205,7 @@ export default function CanvasPage({ params }: any) {
           <Tooltip content="Select (S)">
             <ToolbarButton
               active={currentTool === "select"}
-              onClick={() => setCurrentTool("select")}
+              onClick={() => setTool("select")}
               icon={<MousePointer2 className="w-4 h-4" />}
             >
               <span className="hidden lg:inline">Select</span>
@@ -195,7 +214,7 @@ export default function CanvasPage({ params }: any) {
           <Tooltip content="Pan (Space)">
             <ToolbarButton
               active={currentTool === "pan"}
-              onClick={() => setCurrentTool("pan")}
+              onClick={() => setTool("pan")}
               icon={<Hand className="w-4 h-4" />}
             >
               <span className="hidden lg:inline">Pan</span>
@@ -243,7 +262,7 @@ export default function CanvasPage({ params }: any) {
           <ToolbarColorPicker
             colors={colors}
             selectedColor={currentColor}
-            onColorSelect={(color) => setCurrentColor(color as FillColor)}
+            onColorSelect={(color) => setColor(color as "none" | "red" | "blue" | "green" | "yellow")}
           />
         </ToolbarGroup>
 
@@ -323,26 +342,13 @@ export default function CanvasPage({ params }: any) {
       </div>
 
       {/* Help Text */}
-      <div className="bg-black/30 backdrop-blur-sm px-6 py-3 border-t border-white/10">
-        <div className="flex items-center justify-center gap-6 text-zinc-300 text-xs flex-wrap">
-          <span className="flex items-center gap-2">
-            <kbd className="px-2 py-1 bg-black/50 rounded text-zinc-200 border border-white/10 font-mono">Scroll</kbd>
-            Zoom
-          </span>
-          <span className="flex items-center gap-2">
-            <kbd className="px-2 py-1 bg-black/50 rounded text-zinc-200 border border-white/10 font-mono">Space</kbd>
-            Pan
-          </span>
-          <span className="flex items-center gap-2">
-            <kbd className="px-2 py-1 bg-black/50 rounded text-zinc-200 border border-white/10 font-mono">Del</kbd>
-            Delete
-          </span>
-          <span className="flex items-center gap-2">
-            <kbd className="px-2 py-1 bg-black/50 rounded text-zinc-200 border border-white/10 font-mono">D/S</kbd>
-            Draw/Select
-          </span>
+      <Section className="bg-neutral-900/50 border-t border-white/10">
+        <div className="text-center">
+          <p className="text-xs text-zinc-400">
+            <span className="font-semibold">Keyboard shortcuts:</span> D (Draw) • S (Select) • Space (Pan) • Del (Delete) • R (Rectangle) • C (Circle) • L (Line)
+          </p>
         </div>
-      </div>
-    </div>
+      </Section>
+    </Layout>
   );
 }
