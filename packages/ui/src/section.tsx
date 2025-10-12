@@ -9,39 +9,74 @@ export interface SectionProps extends React.HTMLAttributes<HTMLElement> {
 
 const Section = React.forwardRef<HTMLElement, SectionProps>(
   ({ className, variant = "default", background = "default", padding = "lg", children, ...props }, ref) => {
-    const backgrounds = {
-      default: "bg-bg-default",
-      gradient: "bg-gradient-to-br from-neutral-950 via-zinc-900 to-neutral-900",
-      glass: "bg-white/5 backdrop-blur-sm",
-      dark: "bg-black",
+    const getBackgroundStyles = () => {
+      switch (background) {
+        case "gradient":
+          return {
+            background: "linear-gradient(135deg, var(--matty-black) 0%, var(--matty-brown) 50%, var(--matty-blue) 100%)",
+          };
+        case "glass":
+          return {
+            backgroundColor: "rgba(255, 255, 255, 0.05)",
+            backdropFilter: "blur(4px)",
+          };
+        case "dark":
+          return {
+            backgroundColor: "var(--matty-black)",
+          };
+        default:
+          return {
+            backgroundColor: "var(--bg-default)",
+          };
+      }
     };
 
-    const paddings = {
-      none: "",
-      sm: "py-8",
-      md: "py-12",
-      lg: "py-16",
-      xl: "py-24",
+    const getPaddingStyles = () => {
+      switch (padding) {
+        case "none":
+          return { padding: "0" };
+        case "sm":
+          return { padding: "2rem 0" };
+        case "md":
+          return { padding: "3rem 0" };
+        case "xl":
+          return { padding: "6rem 0" };
+        default:
+          return { padding: "4rem 0" };
+      }
     };
 
-    const variants = {
-      default: "",
-      hero: "min-h-screen flex items-center justify-center",
-      features: "py-20",
-      cta: "py-16",
-      footer: "py-8",
+    const getVariantStyles = () => {
+      switch (variant) {
+        case "hero":
+          return {
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          };
+        case "features":
+          return { padding: "5rem 0" };
+        case "cta":
+          return { padding: "4rem 0" };
+        case "footer":
+          return { padding: "2rem 0" };
+        default:
+          return {};
+      }
     };
 
     return (
       <section
         ref={ref}
-        className={cn(
-          "relative overflow-hidden",
-          backgrounds[background],
-          paddings[padding],
-          variants[variant],
-          className
-        )}
+        className={cn("section", className)}
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          ...getBackgroundStyles(),
+          ...getPaddingStyles(),
+          ...getVariantStyles(),
+        }}
         {...props}
       >
         {children}
@@ -56,7 +91,12 @@ const SectionContainer = React.forwardRef<HTMLDivElement, React.HTMLAttributes<H
   ({ className, children, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("container mx-auto px-4", className)}
+      className={cn("section-container", className)}
+      style={{
+        maxWidth: "1200px",
+        margin: "0 auto",
+        padding: "0 1rem",
+      }}
       {...props}
     >
       {children}
@@ -69,7 +109,11 @@ const SectionHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
   ({ className, children, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("text-center mb-12", className)}
+      className={cn("section-header", className)}
+      style={{
+        textAlign: "center",
+        marginBottom: "3rem",
+      }}
       {...props}
     >
       {children}
@@ -82,7 +126,17 @@ const SectionTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<H
   ({ className, children, ...props }, ref) => (
     <h2
       ref={ref}
-      className={cn("text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-neutral-200 via-zinc-300 to-slate-200 mb-4 tracking-tight", className)}
+      className={cn("section-title", className)}
+      style={{
+        fontSize: "clamp(2rem, 5vw, 3rem)",
+        fontWeight: "900",
+        background: "linear-gradient(135deg, var(--matty-skin) 0%, var(--matty-blue) 100%)",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        backgroundClip: "text",
+        marginBottom: "1rem",
+        letterSpacing: "-0.02em",
+      }}
       {...props}
     >
       {children}
@@ -95,7 +149,14 @@ const SectionDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttr
   ({ className, children, ...props }, ref) => (
     <p
       ref={ref}
-      className={cn("text-lg text-zinc-300 font-light max-w-2xl mx-auto", className)}
+      className={cn("section-description", className)}
+      style={{
+        fontSize: "1.125rem",
+        color: "var(--content-muted)",
+        fontWeight: "300",
+        maxWidth: "32rem",
+        margin: "0 auto",
+      }}
       {...props}
     >
       {children}

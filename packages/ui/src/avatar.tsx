@@ -11,18 +11,32 @@ export interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
   ({ className, src, alt, name, size = "md", status, ...props }, ref) => {
-    const sizes = {
-      sm: "w-8 h-8 text-xs",
-      md: "w-10 h-10 text-sm",
-      lg: "w-12 h-12 text-base",
-      xl: "w-16 h-16 text-xl",
+    const getSizeStyles = () => {
+      switch (size) {
+        case "sm":
+          return { width: "2rem", height: "2rem", fontSize: "0.75rem" };
+        case "lg":
+          return { width: "3rem", height: "3rem", fontSize: "1rem" };
+        case "xl":
+          return { width: "4rem", height: "4rem", fontSize: "1.25rem" };
+        default:
+          return { width: "2.5rem", height: "2.5rem", fontSize: "0.875rem" };
+      }
     };
 
-    const statusColors = {
-      online: "bg-green-400",
-      offline: "bg-gray-400",
-      away: "bg-yellow-400",
-      busy: "bg-red-400",
+    const getStatusColors = () => {
+      switch (status) {
+        case "online":
+          return { backgroundColor: "var(--content-success)" };
+        case "offline":
+          return { backgroundColor: "var(--content-muted)" };
+        case "away":
+          return { backgroundColor: "var(--content-attention)" };
+        case "busy":
+          return { backgroundColor: "var(--content-error)" };
+        default:
+          return {};
+      }
     };
 
     const getInitials = (name: string) => {
@@ -37,29 +51,55 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
     return (
       <div
         ref={ref}
-        className={cn("relative inline-flex", sizes[size], className)}
+        className={cn("avatar", className)}
+        style={{
+          position: "relative",
+          display: "inline-flex",
+          ...getSizeStyles(),
+        }}
         {...props}
       >
         <div
-          className={cn(
-            "rounded-full overflow-hidden flex items-center justify-center font-semibold",
-            "bg-gradient-to-br from-purple-400 to-pink-400 text-white",
-            "border-2 border-white/20 shadow-lg",
-            sizes[size]
-          )}
+          style={{
+            borderRadius: "50%",
+            overflow: "hidden",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: "600",
+            background: "linear-gradient(135deg, var(--matty-blue) 0%, var(--matty-skin) 100%)",
+            color: "var(--content-inverted)",
+            border: "2px solid rgba(255, 255, 255, 0.2)",
+            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+            ...getSizeStyles(),
+          }}
         >
           {src ? (
-            <img src={src} alt={alt || name || "Avatar"} className="w-full h-full object-cover" />
+            <img 
+              src={src} 
+              alt={alt || name || "Avatar"} 
+              style={{ 
+                width: "100%", 
+                height: "100%", 
+                objectFit: "cover" 
+              }} 
+            />
           ) : (
             <span>{name ? getInitials(name) : "?"}</span>
           )}
         </div>
         {status && (
           <div
-            className={cn(
-              "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-gray-900",
-              statusColors[status]
-            )}
+            style={{
+              position: "absolute",
+              bottom: 0,
+              right: 0,
+              width: "0.75rem",
+              height: "0.75rem",
+              borderRadius: "50%",
+              border: "2px solid var(--matty-black)",
+              ...getStatusColors(),
+            }}
           />
         )}
       </div>
@@ -79,10 +119,30 @@ const AvatarGroup: React.FC<{ children: React.ReactNode; max?: number; className
   const remaining = childArray.length - displayChildren.length;
 
   return (
-    <div className={cn("flex items-center -space-x-2", className)}>
+    <div 
+      className={cn("avatar-group", className)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        marginLeft: "-0.5rem",
+      }}
+    >
       {displayChildren}
       {remaining > 0 && (
-        <div className="w-10 h-10 rounded-full bg-gray-700 border-2 border-white/20 flex items-center justify-center text-xs font-semibold text-white z-10">
+        <div style={{
+          width: "2.5rem",
+          height: "2.5rem",
+          borderRadius: "50%",
+          backgroundColor: "var(--bg-emphasis)",
+          border: "2px solid rgba(255, 255, 255, 0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "0.75rem",
+          fontWeight: "600",
+          color: "var(--content-emphasis)",
+          zIndex: 10,
+        }}>
           +{remaining}
         </div>
       )}

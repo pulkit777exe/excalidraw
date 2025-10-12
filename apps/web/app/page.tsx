@@ -17,7 +17,7 @@ import {
   Background
 } from "@repo/ui";
 import { useAuthStore, useUIStore } from "@repo/store";
-import TopBar from "../components/TopBar";
+import NavBar from "../components/layout/NavBar";
 import { Mail, Lock, User, Plus, LogIn } from "lucide-react";
 
 function generateRoomId(): string {
@@ -108,6 +108,8 @@ export default function Home() {
         body: JSON.stringify(body),
       });
 
+      console.log(response);
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -187,166 +189,279 @@ export default function Home() {
   };
 
   return (
-    <Background variant="animated">
-      <TopBar />
+    <div className="min-h-screen" style={{ backgroundColor: "var(--bg-default)" }}>
+      <Background variant="animated">
+        <NavBar />
 
-      <Section variant="hero" background="default">
-        <SectionContainer>
-          <SectionHeader>
-            <SectionTitle>Escalidraw</SectionTitle>
-            <SectionDescription>
-              Real-time collaborative drawing and chat
-            </SectionDescription>
-          </SectionHeader>
+        <Section variant="hero" background="default">
+          <SectionContainer>
+            <SectionHeader>
+              <SectionTitle>Sprat</SectionTitle>
+              <SectionDescription>
+                Real-time collaborative drawing and chat
+              </SectionDescription>
+            </SectionHeader>
 
-          <Layout variant="centered">
-            <Card variant="glass" className="w-full max-w-2xl">
-              {error && (
-                <div className="mb-4 p-3 bg-red-500/20 border border-red-400/30 rounded-xl backdrop-blur-sm">
-                  <p className="text-sm text-red-200 font-medium">{error}</p>
-                </div>
-              )}
+            <Layout variant="centered">
+              <Card variant="glass" style={{ width: "100%", maxWidth: "32rem" }}>
+                {error && (
+                  <div style={{ 
+                    marginBottom: "1rem", 
+                    padding: "0.75rem", 
+                    backgroundColor: "rgba(211, 47, 47, 0.2)", 
+                    border: "1px solid rgba(211, 47, 47, 0.3)", 
+                    borderRadius: "0.75rem", 
+                    backdropFilter: "blur(4px)" 
+                  }}>
+                    <p style={{ 
+                      fontSize: "0.875rem", 
+                      color: "var(--content-error)", 
+                      fontWeight: "500", 
+                      margin: 0 
+                    }}>
+                      {error}
+                    </p>
+                  </div>
+                )}
 
-              <Layout variant="default" spacing="lg">
-                <FeatureCard
-                  icon={<Plus />}
-                  title="Create New Room"
-                  description="Start fresh with a random room ID"
-                  onClick={handleCreateRoom}
-                  className="cursor-pointer"
-                />
-
-                <Layout variant="default" spacing="md">
+                <Layout variant="default" spacing="lg">
                   <FeatureCard
-                    icon={<LogIn />}
-                    title="Join Existing Room"
-                    description="Enter a room ID to collaborate"
-                    variant="glass"
-                  >
-                    <Layout variant="default" spacing="sm">
-                      <input
-                        type="text"
-                        value={customRoomId}
-                        onChange={(e) => {
-                          setCustomRoomId(e.target.value);
-                          clearError();
-                        }}
-                        placeholder="e.g., swift-tiger-123"
-                        className="w-full px-3 py-2 mb-2 bg-white/5 border-2 border-white/10 rounded-lg focus:ring-2 focus:ring-zinc-300 focus:border-white/40 outline-none transition-all text-white text-sm placeholder-gray-400 backdrop-blur-sm hover:bg-white/10"
-                      />
-                      <Button
-                        onClick={handleJoinRoom}
-                        variant="secondary"
-                        size="sm"
-                        className="w-full"
-                      >
-                        Join Room
-                      </Button>
-                    </Layout>
-                  </FeatureCard>
-                </Layout>
+                    icon={<Plus />}
+                    title="Create New Room"
+                    description="Start fresh with a random room ID"
+                    onClick={handleCreateRoom}
+                    style={{ cursor: "pointer" }}
+                  />
 
-                <Layout variant="default" spacing="sm">
-                  <h4 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
-                    <span className="w-2 h-2 bg-zinc-300 rounded-full animate-pulse"></span>
-                    Popular Rooms
-                  </h4>
+                  <Layout variant="default" spacing="md">
+                    <FeatureCard
+                      icon={<LogIn />}
+                      title="Join Existing Room"
+                      description="Enter a room ID to collaborate"
+                      variant="glass"
+                    >
+                      <Layout variant="default" spacing="sm">
+                        <input
+                          type="text"
+                          value={customRoomId}
+                          onChange={(e) => {
+                            setCustomRoomId(e.target.value);
+                            clearError();
+                          }}
+                          placeholder="e.g., swift-tiger-123"
+                          style={{
+                            width: "100%",
+                            padding: "0.5rem 0.75rem",
+                            marginBottom: "0.5rem",
+                            backgroundColor: "rgba(255, 255, 255, 0.05)",
+                            border: "2px solid rgba(255, 255, 255, 0.1)",
+                            borderRadius: "0.5rem",
+                            outline: "none",
+                            transition: "all 0.3s ease",
+                            color: "var(--content-emphasis)",
+                            fontSize: "0.875rem",
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = "rgba(255, 255, 255, 0.4)";
+                            e.target.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = "rgba(255, 255, 255, 0.1)";
+                            e.target.style.backgroundColor = "rgba(255, 255, 255, 0.05)";
+                          }}
+                        />
+                        <Button
+                          onClick={handleJoinRoom}
+                          variant="secondary"
+                          size="sm"
+                          style={{ width: "100%" }}
+                        >
+                          Join Room
+                        </Button>
+                      </Layout>
+                    </FeatureCard>
+                  </Layout>
+
                   <Layout variant="default" spacing="sm">
-                    {["general", "design", "brainstorm", "random"].map((room) => (
-                      <Button
-                        key={room}
-                        onClick={() => handleQuickJoin(room)}
-                        variant="ghost"
-                        size="sm"
-                        className="border border-white/10 hover:border-white/30 hover:shadow-lg hover:shadow-black/20"
-                      >
-                        #{room}
-                      </Button>
-                    ))}
+                    <h4 style={{ 
+                      fontSize: "0.875rem", 
+                      fontWeight: "600", 
+                      color: "var(--content-muted)", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      gap: "0.5rem",
+                      margin: 0
+                    }}>
+                      <span style={{ 
+                        width: "0.5rem", 
+                        height: "0.5rem", 
+                        backgroundColor: "var(--matty-blue)", 
+                        borderRadius: "50%", 
+                        animation: "pulse 2s infinite" 
+                      }}></span>
+                      Popular Rooms
+                    </h4>
+                    <Layout variant="default" spacing="sm">
+                      {["general", "design", "brainstorm", "random"].map((room) => (
+                        <Button
+                          key={room}
+                          onClick={() => handleQuickJoin(room)}
+                          variant="ghost"
+                          size="sm"
+                          style={{ 
+                            border: "1px solid rgba(255, 255, 255, 0.1)", 
+                            transition: "all 0.3s ease"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
+                            e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.2)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+                            e.currentTarget.style.boxShadow = "";
+                          }}
+                        >
+                          #{room}
+                        </Button>
+                      ))}
+                    </Layout>
                   </Layout>
                 </Layout>
+              </Card>
+
+              <Layout variant="default" spacing="sm">
+                <p style={{ 
+                  fontSize: "0.875rem", 
+                  color: "var(--content-muted)", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  gap: "0.5rem",
+                  margin: 0
+                }}>
+                  <span style={{ 
+                    width: "0.375rem", 
+                    height: "0.375rem", 
+                    backgroundColor: "var(--matty-blue)", 
+                    borderRadius: "50%", 
+                    animation: "pulse 2s infinite" 
+                  }}></span>
+                  Rooms are created automatically • All sessions are collaborative
+                </p>
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  style={{
+                    fontSize: "0.875rem",
+                    color: "var(--content-muted)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    transition: "color 0.2s ease"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--content-emphasis)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--content-muted)";
+                  }}
+                >
+                  {isAuthenticated ? "Switch Account" : "Sign In / Sign Up"}
+                </button>
               </Layout>
-            </Card>
-
-            <Layout variant="default" spacing="sm">
-              <p className="text-sm text-zinc-400 flex items-center justify-center gap-2">
-                <span className="w-1.5 h-1.5 bg-zinc-300 rounded-full animate-pulse"></span>
-                Rooms are created automatically • All sessions are collaborative
-              </p>
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="text-sm text-zinc-200 hover:text-zinc-100 underline"
-              >
-                {isAuthenticated ? "Switch Account" : "Sign In / Sign Up"}
-              </button>
             </Layout>
-          </Layout>
-        </SectionContainer>
-      </Section>
+          </SectionContainer>
+        </Section>
 
-      <Modal
-        isOpen={showAuthModal}
-        onClose={handleCloseModal}
-        title={isSignUp ? "Create Account" : "Sign In"}
-      >
-        {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-400/30 rounded-xl">
-            <p className="text-sm text-red-200">{error}</p>
-          </div>
-        )}
-
-        <Layout variant="default" spacing="md">
-          {isSignUp && (
-            <Input
-              type="text"
-              label="Name"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              placeholder="Enter your name"
-              icon={<User className="w-5 h-5" />}
-            />
+        <Modal
+          isOpen={showAuthModal}
+          onClose={handleCloseModal}
+          title={isSignUp ? "Create Account" : "Sign In"}
+        >
+          {error && (
+            <div style={{ 
+              marginBottom: "1rem", 
+              padding: "0.75rem", 
+              backgroundColor: "rgba(211, 47, 47, 0.1)", 
+              border: "1px solid rgba(211, 47, 47, 0.3)", 
+              borderRadius: "0.75rem" 
+            }}>
+              <p style={{ 
+                fontSize: "0.875rem", 
+                color: "var(--content-error)", 
+                margin: 0 
+              }}>
+                {error}
+              </p>
+            </div>
           )}
 
-          <Input
-            type="email"
-            label="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            icon={<Mail className="w-5 h-5" />}
-          />
+          <Layout variant="default" spacing="md">
+            {isSignUp && (
+              <Input
+                type="text"
+                label="Name"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="Enter your name"
+                icon={<User style={{ width: "1.25rem", height: "1.25rem" }} />}
+              />
+            )}
 
-          <Input
-            type="password"
-            label="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            icon={<Lock className="w-5 h-5" />}
-          />
+            <Input
+              type="email"
+              label="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              icon={<Mail style={{ width: "1.25rem", height: "1.25rem" }} />}
+            />
 
-          <Button
-            onClick={handleAuth}
-            variant="primary"
-            size="lg"
-            className="w-full"
-            isLoading={authLoading}
-          >
-            {isSignUp ? "Sign Up" : "Sign In"}
-          </Button>
+            <Input
+              type="password"
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              icon={<Lock style={{ width: "1.25rem", height: "1.25rem" }} />}
+            />
 
-          <div className="text-center">
-            <button
-              onClick={handleToggleAuthMode}
-              className="text-sm text-zinc-200 hover:text-zinc-100"
+            <Button
+              onClick={handleAuth}
+              variant="primary"
+              size="lg"
+              style={{ width: "100%" }}
+              isLoading={authLoading}
             >
-              {isSignUp
-                ? "Already have an account? Sign In"
-                : "Don't have an account? Sign Up"}
-            </button>
-          </div>
-        </Layout>
-      </Modal>
-    </Background>
+              {isSignUp ? "Sign Up" : "Sign In"}
+            </Button>
+
+            <div style={{ textAlign: "center" }}>
+              <button
+                onClick={handleToggleAuthMode}
+                style={{
+                  fontSize: "0.875rem",
+                  color: "var(--content-muted)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "color 0.2s ease"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--content-emphasis)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--content-muted)";
+                }}
+              >
+                {isSignUp
+                  ? "Already have an account? Sign In"
+                  : "Don't have an account? Sign Up"}
+              </button>
+            </div>
+          </Layout>
+        </Modal>
+      </Background>
+    </div>
   );
 }

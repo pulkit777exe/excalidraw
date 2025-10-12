@@ -1,4 +1,4 @@
-import { Router, Request, Response, RouterOptions } from "express";
+import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prismaClient } from "@repo/db";
@@ -21,7 +21,7 @@ if (!JWT_SECRET) {
 }
 
 const generateToken = (userId: number, email: string): string => {
-  return jwt.sign({ userId, email }, JWT_SECRET!, {
+  return jwt.sign({ userId, email }, JWT_SECRET, {
     expiresIn: JWT_EXPIRY,
     issuer: JWT_ISSUER,
   });

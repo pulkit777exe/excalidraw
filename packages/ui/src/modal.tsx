@@ -36,35 +36,88 @@ const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
-  const sizes = {
-    sm: "max-w-sm",
-    md: "max-w-md",
-    lg: "max-w-lg",
-    xl: "max-w-xl",
+  const getSizeStyles = () => {
+    switch (size) {
+      case "sm":
+        return { maxWidth: "24rem" };
+      case "lg":
+        return { maxWidth: "32rem" };
+      case "xl":
+        return { maxWidth: "36rem" };
+      default:
+        return { maxWidth: "28rem" };
+    }
   };
 
   return (
     <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
+      className={cn("modal-overlay")}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem",
+        zIndex: 50,
+        animation: "fadeIn 0.2s ease-out",
+      }}
       onClick={onClose}
     >
       <div
-        className={cn(
-          "bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-2xl p-6 w-full border border-white/10",
-          "animate-in zoom-in-95 duration-200",
-          sizes[size]
-        )}
+        className={cn("modal-content")}
+        style={{
+          background: "linear-gradient(135deg, var(--matty-black) 0%, var(--matty-brown) 100%)",
+          borderRadius: "1rem",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+          padding: "1.5rem",
+          width: "100%",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          animation: "zoomIn 0.2s ease-out",
+          ...getSizeStyles(),
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {(title || showCloseButton) && (
-          <div className="flex justify-between items-center mb-6">
-            {title && <h2 className="text-2xl font-bold text-white">{title}</h2>}
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center", 
+            marginBottom: "1.5rem" 
+          }}>
+            {title && (
+              <h2 style={{ 
+                fontSize: "1.5rem", 
+                fontWeight: "700", 
+                color: "var(--content-emphasis)",
+                margin: 0
+              }}>
+                {title}
+              </h2>
+            )}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-white transition-colors ml-auto"
+                style={{
+                  color: "var(--content-muted)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "color 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--content-emphasis)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--content-muted)";
+                }}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg style={{ width: "1.5rem", height: "1.5rem" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>

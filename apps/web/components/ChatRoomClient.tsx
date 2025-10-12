@@ -2,14 +2,15 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSocket } from "../hooks/useSocket";
-import { useRoomStore, useAuthStore } from "@repo/store";
+import { useRoomStore } from "@repo/store";
 import { Input, Button, Card, Avatar } from "@repo/ui";
 
 interface Message {
-  id?: string;
+  id: string;
   message: string;
-  createdAt?: string;
-  user?: {
+  createdAt: Date;
+  userId: string;
+  user: {
     id: string;
     name: string;
     email: string;
@@ -19,7 +20,12 @@ interface Message {
 function sanitizeMessage(raw: string, maxLen = 1000): string {
   let value = raw.normalize();
   // Remove control characters except tab(\t), newline(\n), carriage return(\r)
-  value = value.replace(new RegExp("[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "g"), "");
+  // Filter out control characters manually to avoid ESLint warnings
+  value = value.split('').filter(char => {
+    const code = char.charCodeAt(0);
+    // Keep printable characters, tab, newline, carriage return
+    return code >= 32 || code === 9 || code === 10 || code === 13;
+  }).join('');
   // Collapse consecutive spaces
   value = value.replace(/\s{3,}/g, "  ");
   // Trim and slice
@@ -49,11 +55,8 @@ export function ChatRoomClient({
     addMessage, 
     setMessages, 
     setConnected, 
-    setError: setRoomError,
-    clearError: clearRoomError 
+    setError: setRoomError
   } = useRoomStore();
-
-  const { user } = useAuthStore();
 
   // Initialize messages from props
   useEffect(() => {
@@ -83,9 +86,11 @@ export function ChatRoomClient({
           const parsedData = JSON.parse(event.data);
           if (parsedData.type === "chat") {
             const newMessage: Message = {
+              id: Math.random().toString(36).substr(2, 9),
               message: String(parsedData.message || ""),
-              user: parsedData.user || { id: parsedData.userId, name: userName, email: "" },
-              createdAt: new Date().toISOString(),
+              userId: parsedData.userId || parsedData.user?.id || "unknown",
+              user: parsedData.user || { id: parsedData.userId || "unknown", name: userName, email: "" },
+              createdAt: new Date(),
             };
             addMessage(newMessage);
           }
@@ -134,56 +139,113 @@ export function ChatRoomClient({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-neutral-950">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white" />
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        backgroundColor: "var(--matty-black)"
+      }}>
+        <div style={{
+          animation: "spin 1s linear infinite",
+          borderRadius: "50%",
+          height: "3rem",
+          width: "3rem",
+          borderBottom: "2px solid var(--content-emphasis)"
+        }} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen bg-neutral-950">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-red-400 mb-2">Connection Error</h2>
-          <p className="text-gray-300">{error}</p>
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        backgroundColor: "var(--matty-black)"
+      }}>
+        <div style={{ textAlign: "center" }}>
+          <h2 style={{ 
+            fontSize: "1.25rem", 
+            fontWeight: "700", 
+            color: "var(--content-error)", 
+            marginBottom: "0.5rem",
+            margin: 0
+          }}>
+            Connection Error
+          </h2>
+          <p style={{ color: "var(--content-muted)", margin: 0 }}>{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-950 text-white">
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      height: "100vh",
+      backgroundColor: "var(--matty-black)",
+      color: "var(--content-emphasis)"
+    }}>
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: "1rem",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1rem"
+      }}>
         {storeMessages.map((chat, index) => (
-          <Card key={chat.id || index} variant="glass" className="p-4">
+          <Card key={chat.id || index} variant="glass" style={{ padding: "1rem" }}>
             {chat.user && (
-              <div className="flex items-center gap-2 mb-2">
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "0.5rem", 
+                marginBottom: "0.5rem" 
+              }}>
                 <Avatar name={chat.user.name} size="sm" />
-                <span className="font-semibold text-sm text-white">{chat.user.name}</span>
+                <span style={{ 
+                  fontWeight: "600", 
+                  fontSize: "0.875rem", 
+                  color: "var(--content-emphasis)" 
+                }}>
+                  {chat.user.name}
+                </span>
                 {chat.createdAt && (
-                  <span className="text-xs text-neutral-400">
+                  <span style={{ 
+                    fontSize: "0.75rem", 
+                    color: "var(--content-muted)" 
+                  }}>
                     {new Date(chat.createdAt).toLocaleTimeString()}
                   </span>
                 )}
               </div>
             )}
-            <p className="text-neutral-200">{chat.message}</p>
+            <p style={{ color: "var(--content-muted)", margin: 0 }}>{chat.message}</p>
           </Card>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Container */}
-      <div className="border-t border-neutral-700 bg-neutral-900 p-4">
-        <div className="flex gap-2">
+      <div style={{
+        borderTop: "1px solid var(--border-default)",
+        backgroundColor: "var(--bg-emphasis)",
+        padding: "1rem",
+      }}>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <Input
             type="text"
             value={currentMessage}
             onChange={(e) => setCurrentMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
-            className="flex-1"
+            style={{ flex: 1 }}
             disabled={!socket || socket.readyState !== WebSocket.OPEN}
             maxLength={1000}
           />

@@ -1,38 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, use, useState } from "react";
 import { 
-  Toolbar, 
-  ToolbarGroup, 
-  ToolbarButton, 
-  ToolbarColorPicker, 
-  ToolbarSeparator,
-  Button,
-  Badge,
-  Avatar,
-  AvatarGroup,
-  Tooltip,
-  Layout,
-  Section
+  CanvasLayout
 } from "@repo/ui";
 import { useCanvasStore, useAuthStore, useRoomStore } from "@repo/store";
-import TopBar from "../../../components/TopBar";
 import { CollaborativeEngine } from "../../../utils/engine";
-import { 
-  MousePointer2, 
-  Hand, 
-  Pencil, 
-  Square, 
-  Circle, 
-  Minus, 
-  Trash2, 
-  Sparkles,
-  Users,
-  Download,
-  Upload,
-  Undo2,
-  Redo2
-} from "lucide-react";
 
 interface CollaboratorUser {
   id: string;
@@ -40,25 +13,24 @@ interface CollaboratorUser {
   status: "online" | "offline";
 }
 
-export default async function CanvasPage({ params }: { params: Promise<{ canvasId: string }> }) {
-  const { canvasId } = await params;
+export default function CanvasPage({ params }: { params: Promise<{ canvasId: string }> }) {
+  const { canvasId } = use(params);
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<CollaborativeEngine | null>(null);
+  const [selectedTool, setSelectedTool] = useState("hand");
+  const [zoom, setZoom] = useState(70);
 
   const { 
     currentShape, 
     currentColor, 
     currentTool, 
-    setShape, 
-    setColor, 
     setTool 
   } = useCanvasStore();
 
   const { user, token } = useAuthStore();
   
   const { 
-    collaborators, 
-    isConnected, 
     addCollaborator, 
     setConnected 
   } = useRoomStore();
@@ -151,204 +123,76 @@ export default async function CanvasPage({ params }: { params: Promise<{ canvasI
     };
   }, [setTool]);
 
-  const handleSelectShape = (shape: "rectangle" | "circle" | "line") => {
-    setShape(shape);
-    setTool("draw");
+  const handleToolSelect = (tool: string) => {
+    setSelectedTool(tool);
+    if (tool === "hand") {
+      setTool("pan");
+    } else if (tool === "cursor") {
+      setTool("select");
+    } else if (tool === "pen") {
+      setTool("draw");
+    } else {
+      setTool("pan");
+    }
   };
 
-  const colors: ("none" | "red" | "blue" | "green" | "yellow")[] = ["none", "red", "blue", "green", "yellow"];
+  const handleZoomIn = () => {
+    setZoom(prev => Math.min(prev + 10, 200));
+  };
+
+  const handleZoomOut = () => {
+    setZoom(prev => Math.max(prev - 10, 10));
+  };
+
+  const handleUndo = () => {
+    console.log("Undo clicked");
+  };
+
+  const handleRedo = () => {
+    console.log("Redo clicked");
+  };
+
+  const handleScrollToContent = () => {
+    console.log("Scroll to content");
+  };
+
+  const handleMenuClick = () => {
+    console.log("Menu clicked");
+  };
+
+  const handleShareClick = () => {
+    console.log("Share clicked");
+  };
+
+  const handleLibraryClick = () => {
+    console.log("Library clicked");
+  };
 
   return (
-    <Layout>
-      <TopBar />
-      
-      <Section className="bg-neutral-900/50 border-b border-white/10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-zinc-300 rounded-full animate-pulse"></div>
-              <span className="text-sm text-zinc-300 font-medium">
-                Room: <span className="text-white font-bold">{canvasId}</span>
-              </span>
-            </div>
-            <Badge variant={isConnected ? "success" : "error"}>
-              <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-400" : "bg-red-400"} animate-pulse`} />
-              {isConnected ? "Connected" : "Disconnected"}
-            </Badge>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-zinc-300" />
-              <span className="text-sm font-medium text-zinc-300">{collaborators.length} online</span>
-            </div>
-            <AvatarGroup max={3}>
-              {collaborators.map((user) => (
-                <Avatar key={user.id} name={user.name} size="sm" status={user.status} />
-              ))}
-            </AvatarGroup>
-          </div>
-        </div>
-      </Section>
-      
-      <Toolbar variant="default">
-        <ToolbarGroup label="Tools">
-          <Tooltip content="Draw (D)">
-            <ToolbarButton
-              active={currentTool === "draw"}
-              onClick={() => setTool("draw")}
-              icon={<Pencil className="w-4 h-4" />}
-            >
-              <span className="hidden lg:inline">Draw</span>
-            </ToolbarButton>
-          </Tooltip>
-          <Tooltip content="Select (S)">
-            <ToolbarButton
-              active={currentTool === "select"}
-              onClick={() => setTool("select")}
-              icon={<MousePointer2 className="w-4 h-4" />}
-            >
-              <span className="hidden lg:inline">Select</span>
-            </ToolbarButton>
-          </Tooltip>
-          <Tooltip content="Pan (Space)">
-            <ToolbarButton
-              active={currentTool === "pan"}
-              onClick={() => setTool("pan")}
-              icon={<Hand className="w-4 h-4" />}
-            >
-              <span className="hidden lg:inline">Pan</span>
-            </ToolbarButton>
-          </Tooltip>
-        </ToolbarGroup>
-
-        <ToolbarSeparator />
-
-        {/* Shapes Group */}
-        <ToolbarGroup label="Shapes">
-          <Tooltip content="Rectangle (R)">
-            <ToolbarButton
-              active={currentShape === "rectangle" && currentTool === "draw"}
-              onClick={() => handleSelectShape("rectangle")}
-              icon={<Square className="w-4 h-4" />}
-            >
-              <span className="hidden xl:inline">Rectangle</span>
-            </ToolbarButton>
-          </Tooltip>
-          <Tooltip content="Circle (C)">
-            <ToolbarButton
-              active={currentShape === "circle" && currentTool === "draw"}
-              onClick={() => handleSelectShape("circle")}
-              icon={<Circle className="w-4 h-4" />}
-            >
-              <span className="hidden xl:inline">Circle</span>
-            </ToolbarButton>
-          </Tooltip>
-          <Tooltip content="Line (L)">
-            <ToolbarButton
-              active={currentShape === "line" && currentTool === "draw"}
-              onClick={() => handleSelectShape("line")}
-              icon={<Minus className="w-4 h-4" />}
-            >
-              <span className="hidden xl:inline">Line</span>
-            </ToolbarButton>
-          </Tooltip>
-        </ToolbarGroup>
-
-        <ToolbarSeparator />
-
-        {/* Colors Group (kept colorful for drawing) */}
-        <ToolbarGroup label="Color">
-          <ToolbarColorPicker
-            colors={colors}
-            selectedColor={currentColor}
-            onColorSelect={(color) => setColor(color as "none" | "red" | "blue" | "green" | "yellow")}
-          />
-        </ToolbarGroup>
-
-        <ToolbarSeparator />
-
-        {/* History Group */}
-        <ToolbarGroup className="hidden md:flex">
-          <Tooltip content="Undo (Ctrl+Z)">
-            <Button variant="ghost" size="sm" className="flex items-center gap-1">
-              <Undo2 className="w-4 h-4" />
-            </Button>
-          </Tooltip>
-          <Tooltip content="Redo (Ctrl+Y)">
-            <Button variant="ghost" size="sm" className="flex items-center gap-1">
-              <Redo2 className="w-4 h-4" />
-            </Button>
-          </Tooltip>
-        </ToolbarGroup>
-
-        <ToolbarSeparator className="hidden md:block" />
-
-        {/* Actions Group */}
-        <ToolbarGroup>
-          <Tooltip content="Export (Ctrl+E)">
-            <Button variant="ghost" size="sm" className="flex items-center gap-1.5">
-              <Download className="w-4 h-4" />
-              <span className="hidden lg:inline">Export</span>
-            </Button>
-          </Tooltip>
-          <Tooltip content="Import">
-            <Button variant="ghost" size="sm" className="flex items-center gap-1.5">
-              <Upload className="w-4 h-4" />
-              <span className="hidden lg:inline">Import</span>
-            </Button>
-          </Tooltip>
-        </ToolbarGroup>
-
-        <ToolbarSeparator />
-
-        <ToolbarGroup>
-          <Tooltip content="Delete Selected (Del)">
-            <Button
-              onClick={() => engineRef.current?.deleteSelected()}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1.5"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span className="hidden md:inline">Delete</span>
-            </Button>
-          </Tooltip>
-          <Tooltip content="Clear All">
-            <Button
-              onClick={() => engineRef.current?.reset()}
-              variant="destructive"
-              size="sm"
-              className="flex items-center gap-1.5"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span className="hidden md:inline">Clear</span>
-            </Button>
-          </Tooltip>
-        </ToolbarGroup>
-      </Toolbar>
-
-      {/* Canvas */}
-      <div className="flex-1 relative overflow-hidden p-4">
-        <div className="w-full h-full rounded-2xl overflow-hidden shadow-2xl border-2 border-white/10">
+    <CanvasLayout
+      selectedTool={selectedTool}
+      onToolSelect={handleToolSelect}
+      onMenuClick={handleMenuClick}
+      onShareClick={handleShareClick}
+      onLibraryClick={handleLibraryClick}
+      zoom={zoom}
+      onZoomIn={handleZoomIn}
+      onZoomOut={handleZoomOut}
+      onUndo={handleUndo}
+      onRedo={handleRedo}
+      onScrollToContent={handleScrollToContent}
+    >
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="w-full h-full max-w-6xl max-h-4xl">
           <canvas
             ref={canvasRef}
-            className="w-full h-full bg-white"
+            className="w-full h-full bg-white dark:bg-neutral-900 rounded-lg shadow-lg"
             style={{
               cursor: currentTool === "pan" ? "grab" : currentTool === "select" ? "pointer" : "crosshair"
             }}
           />
         </div>
       </div>
-
-      {/* Help Text */}
-      <Section className="bg-neutral-900/50 border-t border-white/10">
-        <div className="text-center">
-          <p className="text-xs text-zinc-400">
-            <span className="font-semibold">Keyboard shortcuts:</span> D (Draw) • S (Select) • Space (Pan) • Del (Delete) • R (Rectangle) • C (Circle) • L (Line)
-          </p>
-        </div>
-      </Section>
-    </Layout>
+    </CanvasLayout>
   );
 }

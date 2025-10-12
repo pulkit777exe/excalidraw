@@ -7,10 +7,11 @@ import { ChatRoomClient } from "./ChatRoomClient";
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3008";
 
 interface Message {
-  id?: string;
+  id: string;
   message: string;
-  createdAt?: string;
-  user?: {
+  createdAt: Date;
+  userId: string;
+  user: {
     id: string;
     name: string;
     email: string;
@@ -27,10 +28,12 @@ export default function ChatRoom() {
     messages: Message[];
     token: string;
     id: string;
+    userName: string;
   } | null>(null);
 
   const slug = params?.slug as string;
   const token = searchParams?.get("token");
+  const userName = searchParams?.get("name") || "Anonymous";
 
   useEffect(() => {
     if (!slug) return;
@@ -77,10 +80,16 @@ export default function ChatRoom() {
         let messages: Message[] = [];
         if (chatsRes.ok) {
           const chatsJson = await chatsRes.json();
-          messages = chatsJson?.data?.messages || [];
+          const rawMessages = chatsJson?.data?.messages || [];
+          messages = rawMessages.map((msg: { id?: string; message: string; createdAt: string; userId?: string; user?: { id: string; name: string; email: string } }) => ({
+            ...msg,
+            createdAt: new Date(msg.createdAt),
+            id: msg.id || Math.random().toString(36).substr(2, 9),
+            userId: msg.userId || msg.user?.id || "unknown"
+          }));
         }
 
-        setRoomData({ messages, token, id: String(roomIdNum) });
+        setRoomData({ messages, token, id: String(roomIdNum), userName });
         setIsLoading(false);
       } catch (err) {
         console.error("Room initialization error:", err);
@@ -90,15 +99,30 @@ export default function ChatRoom() {
     };
 
     initializeRoom();
-  }, [slug, token, router]);
+  }, [slug, token, router, userName]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block w-16 h-16 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-white text-lg">Connecting to room...</p>
-          <p className="text-gray-400 text-sm mt-2">{slug}</p>
+      <div style={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, var(--matty-black) 0%, var(--matty-brown) 50%, var(--matty-blue) 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{
+            display: "inline-block",
+            width: "4rem",
+            height: "4rem",
+            border: "4px solid var(--matty-blue)",
+            borderTopColor: "transparent",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+            marginBottom: "1rem"
+          }}></div>
+          <p style={{ color: "var(--content-emphasis)", fontSize: "1.125rem", margin: 0 }}>Connecting to room...</p>
+          <p style={{ color: "var(--content-muted)", fontSize: "0.875rem", marginTop: "0.5rem", margin: 0 }}>{slug}</p>
         </div>
       </div>
     );
@@ -106,13 +130,59 @@ export default function ChatRoom() {
 
   if (error || !roomData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <div className="bg-red-500/20 border border-red-400/30 rounded-xl p-6 max-w-md">
-          <h2 className="text-xl font-bold text-red-200 mb-2">Connection Failed</h2>
-          <p className="text-red-200 font-medium mb-4">{error || "Failed to load room"}</p>
+      <div style={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, var(--matty-black) 0%, var(--matty-brown) 50%, var(--matty-blue) 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem"
+      }}>
+        <div style={{
+          backgroundColor: "rgba(211, 47, 47, 0.2)",
+          border: "1px solid rgba(211, 47, 47, 0.3)",
+          borderRadius: "0.75rem",
+          padding: "1.5rem",
+          maxWidth: "28rem"
+        }}>
+          <h2 style={{ 
+            fontSize: "1.25rem", 
+            fontWeight: "700", 
+            color: "var(--content-error)", 
+            marginBottom: "0.5rem",
+            margin: 0
+          }}>
+            Connection Failed
+          </h2>
+          <p style={{ 
+            color: "var(--content-error)", 
+            fontWeight: "500", 
+            marginBottom: "1rem",
+            margin: 0
+          }}>
+            {error || "Failed to load room"}
+          </p>
           <button
             onClick={() => router.push("/")}
-            className="w-full px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors font-semibold"
+            style={{
+              width: "100%",
+              padding: "0.5rem 1.5rem",
+              backgroundColor: "var(--content-error)",
+              color: "var(--content-inverted)",
+              border: "none",
+              borderRadius: "0.5rem",
+              cursor: "pointer",
+              transition: "background-color 0.2s ease",
+              fontWeight: "600"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--content-error)";
+              e.currentTarget.style.opacity = "0.9";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--content-error)";
+              e.currentTarget.style.opacity = "1";
+            }}
           >
             Return Home
           </button>
@@ -126,6 +196,7 @@ export default function ChatRoom() {
       messages={roomData.messages}
       id={roomData.id}
       token={roomData.token}
+      userName={roomData.userName}
     />
   );
 }

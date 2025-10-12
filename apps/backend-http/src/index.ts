@@ -5,8 +5,7 @@ import { prismaClient } from "@repo/db";
 import { createErrorResponse } from "./utils/responses";
 import dotenv from "dotenv";
 
-dotenv.config()
-
+dotenv.config();
 
 const PORT = parseInt(process.env.PORT || "3008", 10);
 const app = express();

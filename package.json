@@ -1,5 +1,5 @@
 {
-  "name": "escalidraw",
+  "name": "sprat",
   "private": true,
   "scripts": {
     "build": "turbo run build",
