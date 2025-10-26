@@ -13,5 +13,3 @@ ENV NODE_ENV=production
 WORKDIR /app/apps/backend-http
 EXPOSE 3008
 CMD ["node", "dist/index.js"]
-
-
