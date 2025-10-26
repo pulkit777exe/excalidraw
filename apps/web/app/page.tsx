@@ -2,19 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Button, 
-  Input, 
-  Card, 
-  Modal, 
-  Section, 
-  SectionContainer, 
-  SectionHeader, 
-  SectionTitle, 
+import axios from "axios";
+import {
+  Button,
+  Input,
+  Card,
+  Modal,
+  Section,
+  SectionContainer,
+  SectionHeader,
+  SectionTitle,
   SectionDescription,
   Layout,
   FeatureCard,
-  Background
+  Background,
 } from "@repo/ui";
 import { useAuthStore, useUIStore } from "@repo/store";
 import NavBar from "../components/layout/NavBar";
@@ -56,26 +57,27 @@ export default function Home() {
   const [customRoomId, setCustomRoomId] = useState("");
   const router = useRouter();
 
-  const { 
-    user, 
-    isAuthenticated, 
-    isLoading: authLoading, 
-    error: authError, 
-    login, 
-    setLoading, 
-    setError, 
-    clearError 
+  const {
+    user,
+    isAuthenticated,
+    isLoading: authLoading,
+    error: authError,
+    login,
+    setLoading,
+    setError,
+    clearError,
   } = useAuthStore();
 
-  const { 
-    showAuthModal, 
-    isSignUp, 
-    error: uiError, 
-    setShowAuthModal, 
-    setIsSignUp
+  const {
+    showAuthModal,
+    isSignUp,
+    error: uiError,
+    setShowAuthModal,
+    setIsSignUp,
   } = useUIStore();
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3008";
+  const BACKEND_URL =
+    process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3008";
   const error = authError || uiError;
 
   const handleAuth = async () => {
@@ -102,25 +104,31 @@ export default function Home() {
         ? { name: trimmedName, email: trimmedEmail, password: trimmedPassword }
         : { email: trimmedEmail, password: trimmedPassword };
 
-      const response = await fetch(`${BACKEND_URL}${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const response = await axios.post(`${BACKEND_URL}${endpoint}`, body);
 
-      console.log(response);
+      console.log("Full response:", response.data);
 
-      const data = await response.json();
+      const responseData = response.data.data || response.data;
 
-      if (!response.ok) {
-        throw new Error(data.error || "Authentication failed");
+      if (!responseData.user || !responseData.token) {
+        throw new Error("Invalid response from server");
       }
 
-      login(data.user, data.token);
+      login(responseData.user, responseData.token);
       setShowAuthModal(false);
       clearError();
-    } catch (err) {
-      if (err instanceof Error) {
+
+      setEmail("");
+      setPassword("");
+      setUserName("");
+    } catch (err: any) {
+      console.error("Auth error:", err);
+
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else if (err.message) {
         setError(err.message);
       } else {
         setError("Authentication failed");
@@ -136,9 +144,9 @@ export default function Home() {
       return;
     }
 
-    const roomId = generateRoomId();
+    const canvasId = generateRoomId();
     router.push(
-      `/room/${roomId}?token=${user?.id}&name=${encodeURIComponent(user?.name || "User")}`
+      `/canvas/${canvasId}?token=${user?.id}&name=${encodeURIComponent(user?.name || "User")}`
     );
   };
 
@@ -148,34 +156,41 @@ export default function Home() {
       return;
     }
 
-    const roomId = customRoomId.trim().toLowerCase();
+    const canvasId = customRoomId.trim().toLowerCase();
 
-    if (!roomId) {
-      setError("Please enter a room ID");
+    if (!canvasId) {
+      setError("Please enter a canvas ID");
       return;
     }
 
-    if (!/^[a-z0-9-]+$/.test(roomId)) {
+    if (!/^[a-z0-9-]+$/.test(canvasId)) {
       setError(
-        "Room ID can only contain lowercase letters, numbers, and hyphens"
+        "Canvas ID can only contain lowercase letters, numbers, and hyphens"
       );
       return;
     }
 
     router.push(
-      `/room/${roomId}?token=${user?.id}&name=${encodeURIComponent(user?.name || "User")}`
+      `/canvas/${canvasId}?token=${user?.id}&name=${encodeURIComponent(user?.name || "User")}`
     );
   };
 
-  const handleQuickJoin = (room: string) => {
+  const handleQuickJoin = (canvasId: string) => {
     if (!isAuthenticated) {
       setShowAuthModal(true);
       return;
     }
 
     router.push(
-      `/room/${room}?token=${user?.id}&name=${encodeURIComponent(user?.name || "User")}`
+      `/canvas/${canvasId}?token=${user?.id}&name=${encodeURIComponent(user?.name || "User")}`
     );
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAuth();
+    }
   };
 
   const handleCloseModal = () => {
@@ -189,7 +204,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--bg-default)" }}>
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: "var(--bg-default)" }}
+    >
       <Background variant="animated">
         <NavBar />
 
@@ -203,22 +221,29 @@ export default function Home() {
             </SectionHeader>
 
             <Layout variant="centered">
-              <Card variant="glass" style={{ width: "100%", maxWidth: "32rem" }}>
+              <Card
+                variant="glass"
+                style={{ width: "100%", maxWidth: "32rem" }}
+              >
                 {error && (
-                  <div style={{ 
-                    marginBottom: "1rem", 
-                    padding: "0.75rem", 
-                    backgroundColor: "rgba(211, 47, 47, 0.2)", 
-                    border: "1px solid rgba(211, 47, 47, 0.3)", 
-                    borderRadius: "0.75rem", 
-                    backdropFilter: "blur(4px)" 
-                  }}>
-                    <p style={{ 
-                      fontSize: "0.875rem", 
-                      color: "var(--content-error)", 
-                      fontWeight: "500", 
-                      margin: 0 
-                    }}>
+                  <div
+                    style={{
+                      marginBottom: "1rem",
+                      padding: "0.75rem",
+                      backgroundColor: "rgba(211, 47, 47, 0.2)",
+                      border: "1px solid rgba(211, 47, 47, 0.3)",
+                      borderRadius: "0.75rem",
+                      backdropFilter: "blur(4px)",
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontSize: "0.875rem",
+                        color: "var(--content-error)",
+                        fontWeight: "500",
+                        margin: 0,
+                      }}
+                    >
                       {error}
                     </p>
                   </div>
@@ -262,12 +287,16 @@ export default function Home() {
                             fontSize: "0.875rem",
                           }}
                           onFocus={(e) => {
-                            e.target.style.borderColor = "rgba(255, 255, 255, 0.4)";
-                            e.target.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                            e.target.style.borderColor =
+                              "rgba(255, 255, 255, 0.4)";
+                            e.target.style.backgroundColor =
+                              "rgba(255, 255, 255, 0.1)";
                           }}
                           onBlur={(e) => {
-                            e.target.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                            e.target.style.backgroundColor = "rgba(255, 255, 255, 0.05)";
+                            e.target.style.borderColor =
+                              "rgba(255, 255, 255, 0.1)";
+                            e.target.style.backgroundColor =
+                              "rgba(255, 255, 255, 0.05)";
                           }}
                         />
                         <Button
@@ -283,70 +312,84 @@ export default function Home() {
                   </Layout>
 
                   <Layout variant="default" spacing="sm">
-                    <h4 style={{ 
-                      fontSize: "0.875rem", 
-                      fontWeight: "600", 
-                      color: "var(--content-muted)", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      gap: "0.5rem",
-                      margin: 0
-                    }}>
-                      <span style={{ 
-                        width: "0.5rem", 
-                        height: "0.5rem", 
-                        backgroundColor: "var(--matty-blue)", 
-                        borderRadius: "50%", 
-                        animation: "pulse 2s infinite" 
-                      }}></span>
+                    <h4
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: "600",
+                        color: "var(--content-muted)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        margin: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "0.5rem",
+                          height: "0.5rem",
+                          backgroundColor: "var(--matty-blue)",
+                          borderRadius: "50%",
+                          animation: "pulse 2s infinite",
+                        }}
+                      ></span>
                       Popular Rooms
                     </h4>
                     <Layout variant="default" spacing="sm">
-                      {["general", "design", "brainstorm", "random"].map((room) => (
-                        <Button
-                          key={room}
-                          onClick={() => handleQuickJoin(room)}
-                          variant="ghost"
-                          size="sm"
-                          style={{ 
-                            border: "1px solid rgba(255, 255, 255, 0.1)", 
-                            transition: "all 0.3s ease"
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
-                            e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.2)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                            e.currentTarget.style.boxShadow = "";
-                          }}
-                        >
-                          #{room}
-                        </Button>
-                      ))}
+                      {["general", "design", "brainstorm", "random"].map(
+                        (room) => (
+                          <Button
+                            key={room}
+                            onClick={() => handleQuickJoin(room)}
+                            variant="ghost"
+                            size="sm"
+                            style={{
+                              border: "1px solid rgba(255, 255, 255, 0.1)",
+                              transition: "all 0.3s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor =
+                                "rgba(255, 255, 255, 0.3)";
+                              e.currentTarget.style.boxShadow =
+                                "0 10px 15px -3px rgba(0, 0, 0, 0.2)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor =
+                                "rgba(255, 255, 255, 0.1)";
+                              e.currentTarget.style.boxShadow = "";
+                            }}
+                          >
+                            #{room}
+                          </Button>
+                        )
+                      )}
                     </Layout>
                   </Layout>
                 </Layout>
               </Card>
 
               <Layout variant="default" spacing="sm">
-                <p style={{ 
-                  fontSize: "0.875rem", 
-                  color: "var(--content-muted)", 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  gap: "0.5rem",
-                  margin: 0
-                }}>
-                  <span style={{ 
-                    width: "0.375rem", 
-                    height: "0.375rem", 
-                    backgroundColor: "var(--matty-blue)", 
-                    borderRadius: "50%", 
-                    animation: "pulse 2s infinite" 
-                  }}></span>
-                  Rooms are created automatically • All sessions are collaborative
+                <p
+                  style={{
+                    fontSize: "0.875rem",
+                    color: "var(--content-muted)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.5rem",
+                    margin: 0,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "0.375rem",
+                      height: "0.375rem",
+                      backgroundColor: "var(--matty-blue)",
+                      borderRadius: "50%",
+                      animation: "pulse 2s infinite",
+                    }}
+                  ></span>
+                  Rooms are created automatically • All sessions are
+                  collaborative
                 </p>
                 <button
                   onClick={() => setShowAuthModal(true)}
@@ -357,7 +400,7 @@ export default function Home() {
                     border: "none",
                     cursor: "pointer",
                     textDecoration: "underline",
-                    transition: "color 0.2s ease"
+                    transition: "color 0.2s ease",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.color = "var(--content-emphasis)";
@@ -379,18 +422,22 @@ export default function Home() {
           title={isSignUp ? "Create Account" : "Sign In"}
         >
           {error && (
-            <div style={{ 
-              marginBottom: "1rem", 
-              padding: "0.75rem", 
-              backgroundColor: "rgba(211, 47, 47, 0.1)", 
-              border: "1px solid rgba(211, 47, 47, 0.3)", 
-              borderRadius: "0.75rem" 
-            }}>
-              <p style={{ 
-                fontSize: "0.875rem", 
-                color: "var(--content-error)", 
-                margin: 0 
-              }}>
+            <div
+              style={{
+                marginBottom: "1rem",
+                padding: "0.75rem",
+                backgroundColor: "rgba(211, 47, 47, 0.1)",
+                border: "1px solid rgba(211, 47, 47, 0.3)",
+                borderRadius: "0.75rem",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "0.875rem",
+                  color: "var(--content-error)",
+                  margin: 0,
+                }}
+              >
                 {error}
               </p>
             </div>
@@ -403,6 +450,7 @@ export default function Home() {
                 label="Name"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="Enter your name"
                 icon={<User style={{ width: "1.25rem", height: "1.25rem" }} />}
               />
@@ -413,6 +461,7 @@ export default function Home() {
               label="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Enter your email"
               icon={<Mail style={{ width: "1.25rem", height: "1.25rem" }} />}
             />
@@ -422,6 +471,7 @@ export default function Home() {
               label="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Enter your password"
               icon={<Lock style={{ width: "1.25rem", height: "1.25rem" }} />}
             />
@@ -445,7 +495,7 @@ export default function Home() {
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  transition: "color 0.2s ease"
+                  transition: "color 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = "var(--content-emphasis)";

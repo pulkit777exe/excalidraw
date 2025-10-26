@@ -11,8 +11,9 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@repo/ui": "workspace:*",
     "@repo/store": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "better-auth": "^1.3.32",
     "lucide-react": "^0.544.0",
     "next": "^15.3.0",
     "react": "^19.1.0",

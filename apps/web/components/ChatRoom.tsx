@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { ChatRoomClient } from "./ChatRoomClient";
+import axios from "axios";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3008";
 
@@ -45,22 +46,19 @@ export default function ChatRoom() {
 
     const initializeRoom = async () => {
       try {
-        // Fetch room by slug to get numeric id
-        const roomRes = await fetch(`${BACKEND_URL}/api/room/${slug}`, {
-          method: "GET",
+        const roomRes = await axios.get(`${BACKEND_URL}/api/room/${slug}`, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
           },
         });
 
-        if (!roomRes.ok) {
+        if (!roomRes.status || roomRes.status !== 200) {
           setError(roomRes.status === 404 ? "Room not found" : "Failed to load room");
           setIsLoading(false);
           return;
         }
 
-        const roomJson = await roomRes.json();
+        const roomJson = roomRes.data;
         const roomIdNum: number | undefined = roomJson?.data?.room?.id;
         if (!roomIdNum) {
           setError("Invalid room response");
@@ -68,18 +66,15 @@ export default function ChatRoom() {
           return;
         }
 
-        // Fetch recent chats by numeric room id
-        const chatsRes = await fetch(`${BACKEND_URL}/api/chats/${roomIdNum}`, {
-          method: "GET",
+        const chatsRes = await axios.get(`${BACKEND_URL}/api/chats/${roomIdNum}`, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
           },
         });
 
         let messages: Message[] = [];
-        if (chatsRes.ok) {
-          const chatsJson = await chatsRes.json();
+        if (chatsRes.status === 200) {
+          const chatsJson = chatsRes.data;
           const rawMessages = chatsJson?.data?.messages || [];
           messages = rawMessages.map((msg: { id?: string; message: string; createdAt: string; userId?: string; user?: { id: string; name: string; email: string } }) => ({
             ...msg,
