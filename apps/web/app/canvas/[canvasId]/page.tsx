@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, use, useState } from "react";
-import { 
-  CanvasLayout
-} from "@repo/ui";
+import { CanvasLayout } from "@repo/ui";
 import { useCanvasStore, useAuthStore, useRoomStore } from "@repo/store";
 import { CollaborativeEngine } from "../../../utils/engine";
 
@@ -13,36 +11,32 @@ interface CollaboratorUser {
   status: "online" | "offline";
 }
 
-export default function CanvasPage({ params }: { params: Promise<{ canvasId: string }> }) {
+export default function CanvasPage({
+  params,
+}: {
+  params: Promise<{ canvasId: string }>;
+}) {
   const { canvasId } = use(params);
-  
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<CollaborativeEngine | null>(null);
   const [selectedTool, setSelectedTool] = useState("hand");
-  const [zoom, setZoom] = useState(70);
+  const [zoom, setZoom] = useState(34);
 
-  const { 
-    currentShape, 
-    currentColor, 
-    currentTool, 
-    setTool 
-  } = useCanvasStore();
+  const { currentShape, currentColor, currentTool, setTool } = useCanvasStore();
 
   const { user, token } = useAuthStore();
-  
-  const { 
-    addCollaborator, 
-    setConnected 
-  } = useRoomStore();
+
+  const { addCollaborator, setConnected } = useRoomStore();
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    const userName = user?.name || "Anonymous";
+    const userName = user?.name || "User";
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
 
     engineRef.current = new CollaborativeEngine(
@@ -59,7 +53,7 @@ export default function CanvasPage({ params }: { params: Promise<{ canvasId: str
     addCollaborator({
       id: user?.id || "1",
       name: userName,
-      status: "online"
+      status: "online",
     });
 
     const interval = setInterval(() => {
@@ -68,19 +62,39 @@ export default function CanvasPage({ params }: { params: Promise<{ canvasId: str
         { id: "2", name: "Alex Smith", status: "online" },
         { id: "3", name: "Jordan Lee", status: "online" },
       ];
-      
-      // Update collaborators in store
-      mockUsers.slice(0, Math.floor(Math.random() * 3) + 1).forEach(collab => {
-        addCollaborator(collab);
-      });
+
+      mockUsers
+        .slice(0, Math.floor(Math.random() * 3) + 1)
+        .forEach((collab) => {
+          addCollaborator(collab);
+        });
     }, 5000);
+
+    const handleResize = () => {
+      if (canvas) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        engineRef.current?.render();
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener("resize", handleResize);
       engineRef.current?.destroy();
       setConnected(false);
     };
-  }, [canvasId, currentColor, currentShape, user, token, addCollaborator, setConnected]);
+  }, [
+    canvasId,
+    currentColor,
+    currentShape,
+    user,
+    token,
+    addCollaborator,
+    setConnected,
+  ]);
 
   useEffect(() => {
     engineRef.current?.setShape(currentShape);
@@ -91,108 +105,74 @@ export default function CanvasPage({ params }: { params: Promise<{ canvasId: str
   }, [currentColor]);
 
   useEffect(() => {
-    engineRef.current?.setTool(currentTool);
-  }, [currentTool]);
+    engineRef.current?.setTool(selectedTool);
+  }, [selectedTool]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === "Delete" || e.key === "Backspace") {
         engineRef.current?.deleteSelected();
       } else if (e.key === "d" || e.key === "D") {
-        setTool("draw");
+        setSelectedTool("pen");
       } else if (e.key === "s" || e.key === "S") {
-        setTool("select");
+        setSelectedTool("cursor");
       } else if (e.key === " ") {
         e.preventDefault();
-        setTool("pan");
+        setSelectedTool("hand");
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === " ") {
-        setTool("draw");
+        setSelectedTool("pen");
       }
     };
 
     window.addEventListener("keydown", handleKeyPress);
     window.addEventListener("keyup", handleKeyUp);
-    
+
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [setTool]);
-
-  const handleToolSelect = (tool: string) => {
-    setSelectedTool(tool);
-    if (tool === "hand") {
-      setTool("pan");
-    } else if (tool === "cursor") {
-      setTool("select");
-    } else if (tool === "pen") {
-      setTool("draw");
-    } else {
-      setTool("pan");
-    }
-  };
+  }, []);
 
   const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + 10, 200));
+    setZoom((prev) => Math.min(prev + 10, 200));
   };
 
   const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - 10, 10));
-  };
-
-  const handleUndo = () => {
-    console.log("Undo clicked");
-  };
-
-  const handleRedo = () => {
-    console.log("Redo clicked");
-  };
-
-  const handleScrollToContent = () => {
-    console.log("Scroll to content");
-  };
-
-  const handleMenuClick = () => {
-    console.log("Menu clicked");
-  };
-
-  const handleShareClick = () => {
-    console.log("Share clicked");
-  };
-
-  const handleLibraryClick = () => {
-    console.log("Library clicked");
+    setZoom((prev) => Math.max(prev - 10, 10));
   };
 
   return (
     <CanvasLayout
       selectedTool={selectedTool}
-      onToolSelect={handleToolSelect}
-      onMenuClick={handleMenuClick}
-      onShareClick={handleShareClick}
-      onLibraryClick={handleLibraryClick}
+      onToolSelect={setSelectedTool}
+      onMenuClick={() => console.log("Menu clicked")}
+      onShareClick={() => console.log("Share clicked")}
+      onLibraryClick={() => console.log("Library clicked")}
       zoom={zoom}
       onZoomIn={handleZoomIn}
       onZoomOut={handleZoomOut}
-      onUndo={handleUndo}
-      onRedo={handleRedo}
-      onScrollToContent={handleScrollToContent}
+      onUndo={() => console.log("Undo")}
+      onRedo={() => console.log("Redo")}
+      onScrollToContent={() => console.log("Scroll to content")}
     >
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="w-full h-full max-w-6xl max-h-4xl">
-          <canvas
-            ref={canvasRef}
-            className="w-full h-full bg-white dark:bg-neutral-900 rounded-lg shadow-lg"
-            style={{
-              cursor: currentTool === "pan" ? "grab" : currentTool === "select" ? "pointer" : "crosshair"
-            }}
-          />
-        </div>
-      </div>
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "block",
+          cursor:
+            selectedTool === "hand"
+              ? "grab"
+              : selectedTool === "cursor"
+                ? "pointer"
+                : "crosshair",
+        }}
+      />
     </CanvasLayout>
   );
 }
