@@ -21,7 +21,7 @@ export default function Home() {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        defaultMode="signin"
+        defaultMode="signup"
       />
     </>
   );
