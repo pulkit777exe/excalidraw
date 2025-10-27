@@ -10,9 +10,10 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultMode?: "signin" | "signup";
+  onSuccess?: () => void;
 }
 
-export default function AuthModal({ isOpen, onClose, defaultMode = "signin" }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, defaultMode = "signin", onSuccess }: AuthModalProps) {
   const [mode, setMode] = useState<"signin" | "signup">(defaultMode);
   const { clearError } = useUIStore();
 
@@ -22,6 +23,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = "signin" }: A
   };
 
   const handleSuccess = () => {
+    onSuccess?.();
     handleClose();
   };
 

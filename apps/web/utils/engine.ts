@@ -72,6 +72,7 @@ export class CollaborativeEngine {
   private cursorBroadcastThrottle: number = 50; // ms
   private animationFrameId: number | null = null;
   private needsRedraw: boolean = false;
+  private readOnly: boolean = false;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -79,7 +80,8 @@ export class CollaborativeEngine {
     roomId: string,
     wsUrl: string,
     shape: Shapes = "rectangle",
-    color: FillColor = "none"
+    color: FillColor = "none",
+    readOnly: boolean = false
   ) {
     this.canvas = canvas;
     const context = canvas.getContext("2d");
@@ -92,6 +94,7 @@ export class CollaborativeEngine {
     this.userId = userId;
     this.roomId = roomId;
     this.wsUrl = wsUrl;
+    this.readOnly = readOnly;
 
     // Bind handlers once for proper cleanup
     this.boundHandlers = {
@@ -121,7 +124,7 @@ export class CollaborativeEngine {
     render();
   }
 
-  private scheduleRedraw(): void {
+  public scheduleRedraw(): void {
     this.needsRedraw = true;
   }
 
@@ -252,6 +255,9 @@ export class CollaborativeEngine {
 
   private handleMouseDown(event: MouseEvent): void {
     event.preventDefault();
+    
+    if (this.readOnly) return; // Disable drawing in read-only mode
+    
     const point = this.getMousePos(event);
 
     if (this.currentTool === "pan" || event.button === 1) {
@@ -276,7 +282,7 @@ export class CollaborativeEngine {
   private handleMouseMove(event: MouseEvent): void {
     const point = this.getMousePos(event);
 
-    // Throttle cursor broadcasts
+    // Throttle cursor broadcasts (always allow in read-only mode for viewing)
     const now = Date.now();
     if (now - this.lastCursorBroadcast > this.cursorBroadcastThrottle) {
       this.broadcastMessage("cursor_move", point);
@@ -293,7 +299,7 @@ export class CollaborativeEngine {
       return;
     }
 
-    if (!this.isDrawing || !this.startPoint) return;
+    if (this.readOnly || !this.isDrawing || !this.startPoint) return;
 
     this.currentDragShape = {
       id: `temp-${Date.now()}`,
@@ -316,7 +322,7 @@ export class CollaborativeEngine {
       return;
     }
 
-    if (!this.isDrawing || !this.startPoint) return;
+    if (this.readOnly || !this.isDrawing || !this.startPoint) return;
 
     const endPoint = this.getMousePos(event);
     
@@ -599,6 +605,8 @@ export class CollaborativeEngine {
   }
 
   public deleteSelected(): void {
+    if (this.readOnly) return; // Disable deletion in read-only mode
+    
     if (this.selectedShapeId) {
       this.shapes.delete(this.selectedShapeId);
       this.broadcastMessage("shape_removed", { id: this.selectedShapeId });
@@ -618,6 +626,10 @@ export class CollaborativeEngine {
       shapes: Array.from(this.shapes.values()),
       viewport: { ...this.viewport }
     };
+  }
+
+  public scheduleRedraw(): void {
+    this.needsRedraw = true;
   }
 
   public destroy(): void {
