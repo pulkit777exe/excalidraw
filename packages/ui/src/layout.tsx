@@ -8,7 +8,7 @@ export interface LayoutProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const Layout = React.forwardRef<HTMLDivElement, LayoutProps>(
   ({ className, variant = "default", spacing = "md", children, ...props }, ref) => {
-    const getVariantStyles = () => {
+    const getVariantStyles = (): React.CSSProperties => {
       switch (variant) {
         case "centered":
           return {
@@ -33,7 +33,7 @@ const Layout = React.forwardRef<HTMLDivElement, LayoutProps>(
       }
     };
 
-    const getSpacingStyles = () => {
+    const getSpacingStyles = (): React.CSSProperties => {
       switch (spacing) {
         case "none":
           return { gap: "0" };

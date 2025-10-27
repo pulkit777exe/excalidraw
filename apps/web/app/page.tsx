@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useAuthStore, useUIStore } from "@repo/store";
 import AuthModal from "../components/auth/AuthModal";
 import AuthenticatedLanding from "../components/landing/AuthenticatedLanding";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Input, Layout } from "@repo/ui";
+import { Button, Layout } from "@repo/ui";
 import { useAuthStore } from "@repo/store";
 import axios from "axios";
 

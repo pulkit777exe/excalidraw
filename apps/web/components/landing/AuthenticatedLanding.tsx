@@ -8,11 +8,7 @@ import {
   CardContent,
   Section,
   SectionContainer,
-  SectionHeader,
-  SectionTitle,
-  SectionDescription,
   Layout,
-  FeatureCard,
   Background,
 } from "@repo/ui";
 import { useAuthStore } from "@repo/store";
@@ -22,10 +18,7 @@ import {
   LogIn, 
   Users, 
   Clock, 
-  Sparkles,
-  Palette,
-  MessageSquare,
-  Zap
+  Sparkles
 } from "lucide-react";
 
 interface UserRoom {

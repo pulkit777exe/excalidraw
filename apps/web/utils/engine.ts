@@ -628,10 +628,6 @@ export class CollaborativeEngine {
     };
   }
 
-  public scheduleRedraw(): void {
-    this.needsRedraw = true;
-  }
-
   public destroy(): void {
     this.isDestroyed = true;
 
